@@ -7,6 +7,13 @@ pub struct WindowsHotkey {
     current: Option<HotKey>,
 }
 
+// SAFETY: `GlobalHotKeyManager` holds an HWND for a message-only window. The
+// `register`/`unregister` calls dispatch Win32 messages, which are safe to invoke
+// from any thread. We never touch the HWND directly across threads; access is
+// already serialized through `Mutex<Option<WindowsHotkey>>` in `AppState`.
+unsafe impl Send for WindowsHotkey {}
+unsafe impl Sync for WindowsHotkey {}
+
 impl WindowsHotkey {
     pub fn new() -> Result<Self, HotkeyError> {
         Ok(Self {

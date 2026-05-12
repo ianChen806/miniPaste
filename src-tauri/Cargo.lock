@@ -2390,6 +2390,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "clipboard-win",
+ "crossbeam-channel",
  "dirs 5.0.1",
  "global-hotkey",
  "image 0.25.10",

@@ -1,4 +1,5 @@
 use super::{Clipboard, ClipboardError};
+use clipboard_win::Setter;
 use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
@@ -38,7 +39,13 @@ impl Clipboard for WindowsClipboard {
             .map(|p| p.to_string_lossy().into_owned())
             .collect();
         retry_3(|| {
-            clipboard_win::set_clipboard(clipboard_win::formats::FileList, &strings)
+            // `set_clipboard` can't be used here: FileList implements `Setter<[T]>`
+            // (unsized slice), so we can't pass the data by value. Open the
+            // clipboard manually and call `write_clipboard` with a slice ref.
+            let _clip = clipboard_win::Clipboard::new_attempts(10)
+                .map_err(|e| ClipboardError::Backend(e.to_string()))?;
+            clipboard_win::formats::FileList
+                .write_clipboard(strings.as_slice())
                 .map_err(|e| ClipboardError::Backend(e.to_string()))
         })
     }

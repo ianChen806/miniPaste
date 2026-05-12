@@ -24,6 +24,7 @@ tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 global-hotkey = "0.6"
+crossbeam-channel = "0.5"
 screenshots = "0.8"
 arboard = "3"
 image = "0.25"
