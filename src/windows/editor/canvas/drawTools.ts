@@ -46,6 +46,7 @@ export function renderShape(shape: Shape): Konva.Node {
         strokeWidth: width,
         lineCap: "round",
         id: shape.id,
+        draggable: true,
       });
     }
     case "rect": {
@@ -58,6 +59,7 @@ export function renderShape(shape: Shape): Konva.Node {
         stroke,
         strokeWidth: width,
         id: shape.id,
+        draggable: true,
       });
     }
     case "arrow": {
@@ -70,6 +72,7 @@ export function renderShape(shape: Shape): Konva.Node {
         pointerLength: width * 3,
         pointerWidth: width * 3,
         id: shape.id,
+        draggable: true,
       });
     }
     case "mosaic":
@@ -86,6 +89,7 @@ export function renderShape(shape: Shape): Konva.Node {
         fontSize: shape.text?.fontSize ?? FONT_SIZE[shape.thickness],
         fontFamily: "system-ui, sans-serif",
         id: shape.id,
+        draggable: true,
       });
     }
     default:

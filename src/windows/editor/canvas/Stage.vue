@@ -21,6 +21,7 @@ let annLayer: Konva.Layer | null = null;
 let previewLayer: Konva.Layer | null = null;
 let uiLayer: Konva.Layer | null = null;
 let bgImage: HTMLImageElement | null = null;
+let transformer: Konva.Transformer | null = null;
 
 type Drafting = {
   startX: number;
@@ -130,6 +131,60 @@ onMounted(() => {
   stage.add(annLayer);
   stage.add(previewLayer);
   stage.add(uiLayer);
+
+  transformer = new Konva.Transformer({
+    rotateEnabled: false,
+    ignoreStroke: true,
+  });
+  uiLayer.add(transformer);
+
+  annLayer.on("click", (e) => {
+    if (editorState.tool === "text") return;
+    const target = e.target;
+    if (target === stage || !target.id()) {
+      transformer!.nodes([]);
+      editorState.selectedId = null;
+      return;
+    }
+    transformer!.nodes([target as Konva.Shape]);
+    editorState.selectedId = target.id();
+  });
+
+  stage.on("click", (e) => {
+    if (e.target === stage) {
+      transformer!.nodes([]);
+      editorState.selectedId = null;
+    }
+  });
+
+  annLayer.on("dragend transformend", (e) => {
+    const node = e.target;
+    const id = node.id();
+    const shape = editorState.shapes.find((s) => s.id === id);
+    if (!shape) return;
+    const g = shape.geometry;
+    if (g.kind === "rect" || g.kind === "mosaic" || g.kind === "text") {
+      shape.geometry = {
+        ...g,
+        x: node.x(),
+        y: node.y(),
+        w: Math.max(1, node.width() * node.scaleX()),
+        h: Math.max(1, node.height() * node.scaleY()),
+      };
+      node.scale({ x: 1, y: 1 });
+    } else if (g.kind === "line" || g.kind === "arrow") {
+      const pts = (node as Konva.Line).points();
+      shape.geometry = {
+        ...g,
+        x1: pts[0] + node.x(),
+        y1: pts[1] + node.y(),
+        x2: pts[2] + node.x(),
+        y2: pts[3] + node.y(),
+      };
+      node.position({ x: 0, y: 0 });
+    }
+    commitChange();
+  });
 
   stage.on("mousedown", () => {
     const pos = stage!.getPointerPosition();
