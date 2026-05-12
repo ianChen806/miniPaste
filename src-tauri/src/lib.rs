@@ -16,7 +16,7 @@ use crate::ipc::commands::{
     update_config,
 };
 use crate::state::AppState;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -56,6 +56,14 @@ pub fn run() {
             }
 
             crate::hotkey::listener::spawn(app.handle().clone());
+
+            // Bridge the tray/hotkey "trigger capture" event into the capture pipeline.
+            let app_handle = app.handle().clone();
+            app.listen("tray://trigger-capture", move |_| {
+                if let Err(e) = crate::capture::trigger::trigger_capture(&app_handle) {
+                    let _ = app_handle.emit("capture-error", e);
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

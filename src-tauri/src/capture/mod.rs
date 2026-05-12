@@ -3,6 +3,8 @@ mod windows;
 #[cfg(not(target_os = "windows"))]
 mod macos;
 
+pub mod trigger;
+
 #[cfg(target_os = "windows")]
 pub use windows::WindowsCapture as PlatformCapture;
 #[cfg(not(target_os = "windows"))]
@@ -53,7 +55,6 @@ pub enum CaptureError {
 }
 
 /// Crop a region from the encoded virtual-desktop frame and return PNG bytes.
-/// Rect is given in virtual-desktop OS coordinates (with `origin_x/y` offset).
 pub fn crop_png(frame: &CaptureFrame, rect: Rect) -> Result<Vec<u8>, CaptureError> {
     let img = image::load_from_memory(&frame.png_bytes)
         .map_err(|e| CaptureError::Backend(e.to_string()))?;
