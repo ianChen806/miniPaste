@@ -32,7 +32,8 @@ pub fn run() {
         .setup(|app| {
             crate::tray::build_tray(app.handle())?;
 
-            // Register the configured hotkey.
+            // Register the configured hotkey and keep handle in AppState
+            // so update_config can re-register at runtime.
             let state: tauri::State<AppState> = app.state();
             let combo = state.config.lock().unwrap().hotkey.clone();
             match crate::hotkey::PlatformHotkey::new() {
@@ -46,9 +47,7 @@ pub fn run() {
                             }),
                         );
                     }
-                    // Keep the hotkey registration alive for the process lifetime.
-                    // (Task 32 will move this into AppState to support runtime re-register.)
-                    Box::leak(Box::new(hk));
+                    *state.hotkey.lock().unwrap() = Some(hk);
                 }
                 Err(e) => {
                     tracing::error!("hotkey init failed: {}", e);

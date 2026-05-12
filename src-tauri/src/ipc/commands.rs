@@ -29,10 +29,33 @@ pub fn get_config(state: State<AppState>) -> Result<Config, AppError> {
 pub fn update_config(
     new: Config,
     state: State<AppState>,
-    _app: AppHandle,
+    app: AppHandle,
 ) -> Result<(), AppError> {
-    // Persist first; if write fails, do not update in-memory state.
-    // Hotkey re-registration is wired in Task 32.
+    use crate::hotkey::HotkeyService;
+
+    let old = state.config.lock().unwrap().clone();
+    let hotkey_changed = new.hotkey != old.hotkey;
+
+    if hotkey_changed {
+        let mut hk_slot = state.hotkey.lock().unwrap();
+        if let Some(hk) = hk_slot.as_mut() {
+            match hk.register(&new.hotkey) {
+                Ok(()) => {}
+                Err(e) => {
+                    let _ = app.emit(
+                        "hotkey-conflict",
+                        serde_json::json!({
+                            "attempted": new.hotkey,
+                            "reason": e.to_string(),
+                        }),
+                    );
+                    let _ = hk.register(&old.hotkey);
+                    return Err(e.into());
+                }
+            }
+        }
+    }
+
     store::save(&state.config_path, &new)?;
     *state.config.lock().unwrap() = new;
     Ok(())

@@ -1,5 +1,6 @@
 use crate::capture::CaptureFrame;
 use crate::config::Config;
+use crate::hotkey::PlatformHotkey;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
@@ -50,6 +51,7 @@ pub struct AppState {
     pub last_save_dir: Mutex<Option<PathBuf>>,
     pub config: Mutex<Config>,
     pub config_path: PathBuf,
+    pub hotkey: Mutex<Option<PlatformHotkey>>,
 }
 
 impl AppState {
@@ -61,6 +63,7 @@ impl AppState {
             last_save_dir: Mutex::new(None),
             config: Mutex::new(config),
             config_path,
+            hotkey: Mutex::new(None),
         }
     }
 }
