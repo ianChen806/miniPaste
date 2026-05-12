@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { call } from "../../../shared/ipc";
+import { pushToast } from "../../../shared/toast";
 import type { FinishAction, FinishOutcome } from "../../../shared/types";
 import type Konva from "konva";
 
@@ -20,13 +21,18 @@ async function exportPng(): Promise<Uint8Array> {
 async function doAction(action: FinishAction) {
   try {
     const bytes = Array.from(await exportPng());
-    await call<FinishOutcome>("finish_action", {
+    const outcome = await call<FinishOutcome>("finish_action", {
       action,
       imageBytes: bytes,
     });
+    if (outcome.saved_path) {
+      pushToast("success", `Saved: ${outcome.saved_path}`);
+    } else {
+      pushToast("success", "Copied to clipboard");
+    }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    alert(msg);
+    pushToast("error", msg);
   }
 }
 

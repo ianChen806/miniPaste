@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, reactive } from "vue";
 import { call, on } from "../../shared/ipc";
 import { rectFromDrag, clampToBounds, type Point } from "./selection";
+import Toast from "../../shared/Toast.vue";
 
 const state = reactive({
   bgUrl: "",
@@ -89,6 +90,7 @@ async function cancel() {
       class="selection"
       :style="selectionStyle"
     ></div>
+    <Toast />
   </div>
 </template>
 

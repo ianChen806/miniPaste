@@ -3,6 +3,8 @@ import { onMounted, reactive } from "vue";
 import { call, on } from "../../shared/ipc";
 import type { Config } from "../../shared/types";
 import HotkeyRecorder from "./HotkeyRecorder.vue";
+import Toast from "../../shared/Toast.vue";
+import { pushToast } from "../../shared/toast";
 
 const state = reactive({
   loaded: false,
@@ -38,8 +40,11 @@ async function apply() {
   try {
     await call<void>("update_config", { new: state.config });
     state.error = "";
+    pushToast("success", "Settings saved");
   } catch (e: unknown) {
-    state.error = errorMessage(e);
+    const msg = errorMessage(e);
+    state.error = msg;
+    pushToast("error", msg);
   }
 }
 
@@ -91,6 +96,7 @@ function errorMessage(e: unknown): string {
     </div>
   </div>
   <div v-else-if="!state.loaded">Loading...</div>
+  <Toast />
 </template>
 
 <style scoped src="./settings.css"></style>

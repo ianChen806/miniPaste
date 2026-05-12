@@ -4,6 +4,7 @@ import { call, on } from "../../shared/ipc";
 import Stage from "./canvas/Stage.vue";
 import Toolbar from "./ui/Toolbar.vue";
 import ActionBar from "./ui/ActionBar.vue";
+import Toast from "../../shared/Toast.vue";
 import { editorState, undo, redo, commitChange } from "./state/shapes";
 
 type StageExpose = {
@@ -73,6 +74,7 @@ onUnmounted(() => window.removeEventListener("keydown", onShortcut));
       :height="state.height"
     />
     <ActionBar />
+    <Toast />
   </div>
 </template>
 
