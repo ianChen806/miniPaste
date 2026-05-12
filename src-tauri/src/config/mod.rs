@@ -1,1 +1,6 @@
-// Implementations arrive in Tasks 4-5.
+pub mod defaults;
+pub mod model;
+pub mod store;
+
+pub use defaults::default_config;
+pub use model::{Config, ImageFormat, CURRENT_SCHEMA_VERSION};
