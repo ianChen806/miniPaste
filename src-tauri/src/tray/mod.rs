@@ -4,14 +4,9 @@ mod windows;
 mod macos;
 
 #[cfg(target_os = "windows")]
-pub use windows::WindowsTray as PlatformTray;
+pub use windows::{build_tray, WindowsTray as PlatformTray};
 #[cfg(not(target_os = "windows"))]
-pub use macos::MacosTray as PlatformTray;
-
-#[cfg(target_os = "windows")]
-pub use windows::build_tray;
-#[cfg(not(target_os = "windows"))]
-pub use macos::build_tray;
+pub use macos::{build_tray, MacosTray as PlatformTray};
 
 #[derive(Debug, Clone, Copy)]
 pub enum TrayEvent {

@@ -1,4 +1,5 @@
 use super::TrayService;
+use tauri::AppHandle;
 
 pub struct MacosTray;
 
@@ -9,12 +10,13 @@ impl MacosTray {
 }
 
 impl TrayService for MacosTray {
-    fn build(&self, _app: &tauri::AppHandle) -> tauri::Result<()> {
-        unimplemented!("non-Windows tray deferred")
+    fn build(&self, app: &AppHandle) -> tauri::Result<()> {
+        build_tray(app)
     }
 }
 
-pub fn build_tray(_app: &tauri::AppHandle) -> tauri::Result<()> {
-    // Non-Windows fallback (dev/macOS). Real impl deferred.
+/// Non-Windows fallback. Used for both macOS (deferred real impl) and Linux
+/// (dev). On dev we register no tray; the hotkey IPC path still works.
+pub fn build_tray(_app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
