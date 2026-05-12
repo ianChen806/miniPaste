@@ -97,12 +97,70 @@ pub fn selection_cancelled(
 
 #[tauri::command]
 pub fn finish_action(
-    _action: FinishAction,
-    _image_bytes: Vec<u8>,
-    _state: State<AppState>,
-    _app: AppHandle,
+    action: FinishAction,
+    image_bytes: Vec<u8>,
+    state: State<AppState>,
+    app: AppHandle,
 ) -> Result<FinishOutcome, AppError> {
-    Err(AppError::Other("not yet wired".into()))
+    use crate::clipboard::{Clipboard, PlatformClipboard};
+    let clipboard = PlatformClipboard::new();
+    match action {
+        FinishAction::CopyImage => {
+            clipboard.write_image(&image_bytes)?;
+            finalize(&app, &state, FinishOutcome { saved_path: None })
+        }
+        FinishAction::Save { path } => {
+            crate::fs::save::write_image_file(&path, &image_bytes)?;
+            *state.last_save_dir.lock().unwrap() =
+                path.parent().map(|p| p.to_path_buf());
+            finalize(
+                &app,
+                &state,
+                FinishOutcome {
+                    saved_path: Some(path),
+                },
+            )
+        }
+        FinishAction::SaveAndCopyPath => {
+            let cfg = state.config.lock().unwrap().clone();
+            crate::fs::save::validate_writable_dir(&cfg.default_save_path)?;
+            let filename =
+                crate::fs::filename::now_filename(cfg.image_format.extension());
+            let path = cfg.default_save_path.join(filename);
+            crate::fs::save::write_image_file(&path, &image_bytes)?;
+            clipboard.write_file_paths(&[path.clone()])?;
+            *state.last_save_dir.lock().unwrap() =
+                path.parent().map(|p| p.to_path_buf());
+            finalize(
+                &app,
+                &state,
+                FinishOutcome {
+                    saved_path: Some(path),
+                },
+            )
+        }
+    }
+}
+
+fn finalize(
+    app: &AppHandle,
+    state: &State<AppState>,
+    outcome: FinishOutcome,
+) -> Result<FinishOutcome, AppError> {
+    {
+        let mut phase = state.phase.lock().unwrap();
+        let _ = phase.transition(PhaseEvent::ActionFinished);
+    }
+    *state.cropped.lock().unwrap() = None;
+    *state.capture.lock().unwrap() = None;
+    if let Some(editor) = app.get_webview_window("editor") {
+        let _ = editor.hide();
+    }
+    let _ = app.emit(
+        "action-complete",
+        serde_json::json!({ "saved_path": outcome.saved_path }),
+    );
+    Ok(outcome)
 }
 
 #[tauri::command]
