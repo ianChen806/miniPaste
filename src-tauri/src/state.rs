@@ -1,4 +1,6 @@
 use crate::capture::CaptureFrame;
+use crate::config::Config;
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,23 +47,21 @@ pub struct AppState {
     pub phase: Mutex<AppPhase>,
     pub capture: Mutex<Option<CaptureFrame>>,
     pub cropped: Mutex<Option<Vec<u8>>>,
-    pub last_save_dir: Mutex<Option<std::path::PathBuf>>,
+    pub last_save_dir: Mutex<Option<PathBuf>>,
+    pub config: Mutex<Config>,
+    pub config_path: PathBuf,
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(config: Config, config_path: PathBuf) -> Self {
         Self {
             phase: Mutex::new(AppPhase::Idle),
             capture: Mutex::new(None),
             cropped: Mutex::new(None),
             last_save_dir: Mutex::new(None),
+            config: Mutex::new(config),
+            config_path,
         }
-    }
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

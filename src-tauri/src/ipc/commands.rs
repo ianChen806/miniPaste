@@ -1,5 +1,5 @@
 use crate::capture::Rect;
-use crate::config::Config;
+use crate::config::{store, Config};
 use crate::error::AppError;
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
@@ -20,14 +20,21 @@ pub struct FinishOutcome {
 }
 
 #[tauri::command]
-pub fn get_config(_state: State<AppState>) -> Result<Config, AppError> {
-    // Stub: returns error until Task 16 wires in the config cache.
-    Err(AppError::Other("not yet wired".into()))
+pub fn get_config(state: State<AppState>) -> Result<Config, AppError> {
+    Ok(state.config.lock().unwrap().clone())
 }
 
 #[tauri::command]
-pub fn update_config(_new: Config, _state: State<AppState>) -> Result<(), AppError> {
-    Err(AppError::Other("not yet wired".into()))
+pub fn update_config(
+    new: Config,
+    state: State<AppState>,
+    _app: AppHandle,
+) -> Result<(), AppError> {
+    // Persist first; if write fails, do not update in-memory state.
+    // Hotkey re-registration is wired in Task 32.
+    store::save(&state.config_path, &new)?;
+    *state.config.lock().unwrap() = new;
+    Ok(())
 }
 
 #[tauri::command]
