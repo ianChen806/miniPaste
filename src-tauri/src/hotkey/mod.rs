@@ -6,6 +6,8 @@ mod windows;
 #[cfg(not(target_os = "windows"))]
 mod macos;
 
+pub mod listener;
+
 #[cfg(target_os = "windows")]
 pub use windows::WindowsHotkey as PlatformHotkey;
 #[cfg(not(target_os = "windows"))]
