@@ -2,7 +2,8 @@
 import Konva from "konva";
 import { onMounted, ref, watch } from "vue";
 import { editorState, commitChange } from "../state/shapes";
-import { renderShape } from "./drawTools";
+import { renderShape, renderMosaic } from "./drawTools";
+import { MOSAIC_BLOCK } from "../../../shared/colors";
 import { nanoid } from "nanoid";
 import type { Shape } from "../../../shared/types";
 
@@ -18,6 +19,7 @@ let bgLayer: Konva.Layer | null = null;
 let annLayer: Konva.Layer | null = null;
 let previewLayer: Konva.Layer | null = null;
 let uiLayer: Konva.Layer | null = null;
+let bgImage: HTMLImageElement | null = null;
 
 type Drafting = {
   startX: number;
@@ -25,6 +27,13 @@ type Drafting = {
   node: Konva.Node | null;
 };
 let drafting: Drafting | null = null;
+
+const DRAW_TOOLS = ["line", "rect", "arrow", "mosaic"] as const;
+type DrawTool = (typeof DRAW_TOOLS)[number];
+
+function isDrawTool(t: string): t is DrawTool {
+  return (DRAW_TOOLS as readonly string[]).includes(t);
+}
 
 function buildDraftShape(
   x1: number,
@@ -51,6 +60,19 @@ function buildDraftShape(
       },
     } as Shape;
   }
+  if (tool === "mosaic") {
+    return {
+      ...base,
+      geometry: {
+        kind: "mosaic",
+        x: Math.min(x1, x2),
+        y: Math.min(y1, y2),
+        w: Math.abs(x1 - x2),
+        h: Math.abs(y1 - y2),
+        blockSize: MOSAIC_BLOCK[editorState.thickness],
+      },
+    } as Shape;
+  }
   return {
     ...base,
     geometry: {
@@ -65,10 +87,31 @@ function buildDraftShape(
 
 function shapeIsTooSmall(s: Shape): boolean {
   const g = s.geometry;
-  if (g.kind === "rect") return g.w < 3 || g.h < 3;
+  if (g.kind === "rect" || g.kind === "mosaic") return g.w < 3 || g.h < 3;
   if (g.kind === "line" || g.kind === "arrow")
     return Math.hypot(g.x2 - g.x1, g.y2 - g.y1) < 3;
   return false;
+}
+
+function renderPreview(draft: Shape): Konva.Node | null {
+  if (draft.geometry.kind === "mosaic") {
+    const g = draft.geometry;
+    return new Konva.Rect({
+      x: g.x,
+      y: g.y,
+      width: g.w,
+      height: g.h,
+      fill: "rgba(0,0,0,0.4)",
+      stroke: "white",
+      strokeWidth: 1,
+      dash: [4, 4],
+    });
+  }
+  try {
+    return renderShape(draft);
+  } catch {
+    return null;
+  }
 }
 
 onMounted(() => {
@@ -88,8 +131,7 @@ onMounted(() => {
   stage.add(uiLayer);
 
   stage.on("mousedown", () => {
-    const tool = editorState.tool;
-    if (tool !== "line" && tool !== "rect" && tool !== "arrow") return;
+    if (!isDrawTool(editorState.tool)) return;
     const pos = stage!.getPointerPosition();
     if (!pos) return;
     drafting = { startX: pos.x, startY: pos.y, node: null };
@@ -106,12 +148,8 @@ onMounted(() => {
       pos.y,
     );
     if (drafting.node) drafting.node.destroy();
-    let node: Konva.Node;
-    try {
-      node = renderShape(draft);
-    } catch {
-      return;
-    }
+    const node = renderPreview(draft);
+    if (!node) return;
     drafting.node = node;
     previewLayer!.destroyChildren();
     previewLayer!.add(node as Konva.Shape);
@@ -121,6 +159,8 @@ onMounted(() => {
   stage.on("mouseup", () => {
     if (!drafting) return;
     const pos = stage!.getPointerPosition();
+    previewLayer!.destroyChildren();
+    previewLayer!.batchDraw();
     if (!pos) {
       drafting = null;
       return;
@@ -131,8 +171,6 @@ onMounted(() => {
       pos.x,
       pos.y,
     );
-    previewLayer!.destroyChildren();
-    previewLayer!.batchDraw();
     if (shapeIsTooSmall(final)) {
       drafting = null;
       return;
@@ -144,38 +182,53 @@ onMounted(() => {
   });
 });
 
+function rerenderAnnotations() {
+  if (!annLayer) return;
+  annLayer.destroyChildren();
+  editorState.shapes.forEach((s) => {
+    if (s.geometry.kind === "mosaic" && bgImage) {
+      annLayer!.add(
+        renderMosaic(s as Shape & { geometry: typeof s.geometry }, bgImage),
+      );
+      return;
+    }
+    try {
+      annLayer!.add(renderShape(s) as Konva.Shape);
+    } catch {
+      /* unsupported kinds skipped (text handled later) */
+    }
+  });
+  annLayer.batchDraw();
+}
+
 watch(
   () => props.imageUrl,
-  (url) => {
+  async (url) => {
     if (!url || !stage || !bgLayer) return;
-    Konva.Image.fromURL(url, (img) => {
-      img.x(0);
-      img.y(0);
-      img.width(props.width);
-      img.height(props.height);
-      bgLayer!.destroyChildren();
-      bgLayer!.add(img);
-      bgLayer!.draw();
-      stage!.size({ width: props.width, height: props.height });
+    const img = new Image();
+    img.src = url;
+    try {
+      await img.decode();
+    } catch {
+      return;
+    }
+    bgImage = img;
+    const kImg = new Konva.Image({
+      image: img,
+      x: 0,
+      y: 0,
+      width: props.width,
+      height: props.height,
     });
+    bgLayer.destroyChildren();
+    bgLayer.add(kImg);
+    bgLayer.draw();
+    stage.size({ width: props.width, height: props.height });
+    rerenderAnnotations();
   },
 );
 
-watch(
-  () => editorState.shapes.length,
-  () => {
-    if (!annLayer) return;
-    annLayer.destroyChildren();
-    editorState.shapes.forEach((s) => {
-      try {
-        annLayer!.add(renderShape(s) as Konva.Shape);
-      } catch {
-        /* unsupported shape kinds skipped (mosaic/text handled later) */
-      }
-    });
-    annLayer.batchDraw();
-  },
-);
+watch(() => editorState.shapes.length, rerenderAnnotations);
 
 defineExpose({
   getStage: () => stage,
