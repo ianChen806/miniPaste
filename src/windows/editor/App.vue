@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive } from "vue";
+import { onMounted, onUnmounted, reactive, ref, nextTick } from "vue";
 import { call, on } from "../../shared/ipc";
 import Stage from "./canvas/Stage.vue";
 import Toolbar from "./ui/Toolbar.vue";
 import ActionBar from "./ui/ActionBar.vue";
 import { editorState, undo, redo, commitChange } from "./state/shapes";
+
+type StageExpose = {
+  getStage: () => unknown;
+};
+const stageRef = ref<StageExpose | null>(null);
 
 const state = reactive({
   imgUrl: "",
@@ -49,6 +54,10 @@ onMounted(() => {
     },
   );
   window.addEventListener("keydown", onShortcut);
+  nextTick(() => {
+    (window as unknown as { __editorStage?: unknown }).__editorStage =
+      stageRef.value?.getStage();
+  });
 });
 
 onUnmounted(() => window.removeEventListener("keydown", onShortcut));
@@ -58,6 +67,7 @@ onUnmounted(() => window.removeEventListener("keydown", onShortcut));
   <div class="editor">
     <Toolbar />
     <Stage
+      ref="stageRef"
       :image-url="state.imgUrl"
       :width="state.width"
       :height="state.height"
