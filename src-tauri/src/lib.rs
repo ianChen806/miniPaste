@@ -16,7 +16,7 @@ use crate::ipc::commands::{
     update_config,
 };
 use crate::state::AppState;
-use tauri::{Emitter, Listener, Manager};
+use tauri::{Emitter, Listener, Manager, WindowEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -63,6 +63,29 @@ pub fn run() {
                     let _ = app_handle.emit("capture-error", e);
                 }
             });
+
+            // Intercept editor/overlay/settings window close: hide and reset phase
+            // instead of destroying, so the windows can be reused next time.
+            for label in ["editor", "overlay"] {
+                if let Some(win) = app.get_webview_window(label) {
+                    let app_handle = app.handle().clone();
+                    let label = label.to_string();
+                    win.on_window_event(move |event| {
+                        if let WindowEvent::CloseRequested { api, .. } = event {
+                            api.prevent_close();
+                            if let Some(w) = app_handle.get_webview_window(&label) {
+                                let _ = w.hide();
+                            }
+                            let state: tauri::State<AppState> = app_handle.state();
+                            let mut phase = state.phase.lock().unwrap();
+                            let _ = phase.transition(crate::state::PhaseEvent::Cancelled);
+                            *state.capture.lock().unwrap() = None;
+                            *state.cropped.lock().unwrap() = None;
+                            tracing::info!("window '{}' close intercepted; phase reset", label);
+                        }
+                    });
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -1,1 +1,1 @@
-{}
+{"default":{"identifier":"default","description":"Core APIs available to all app windows","local":true,"windows":["settings","overlay","editor"],"permissions":["core:default","core:event:default","core:window:default","core:webview:default","dialog:default"]}}

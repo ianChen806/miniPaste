@@ -15,8 +15,17 @@ pub struct CaptureReadyPayload {
 }
 
 pub fn trigger_capture(app: &AppHandle) -> Result<(), String> {
+    tracing::info!("trigger_capture invoked");
     let cap = PlatformCapture::new();
     let frame = cap.virtual_desktop().map_err(|e| e.to_string())?;
+    tracing::info!(
+        "trigger_capture: frame {}x{} origin=({},{}), {} screens",
+        frame.width,
+        frame.height,
+        frame.origin_x,
+        frame.origin_y,
+        frame.screens.len()
+    );
 
     // Store full-res frame in state for later crop.
     let state: tauri::State<AppState> = app.state();
@@ -42,9 +51,17 @@ pub fn trigger_capture(app: &AppHandle) -> Result<(), String> {
             height: frame.height,
         });
         let _ = win.set_always_on_top(true);
-        let _ = win.show();
-        let _ = win.set_focus();
-        let _ = win.emit("capture-ready", payload);
+        let r_show = win.show();
+        let r_focus = win.set_focus();
+        let r_emit = win.emit("capture-ready", payload);
+        tracing::info!(
+            "trigger_capture: overlay show={:?} focus={:?} emit={:?}",
+            r_show,
+            r_focus,
+            r_emit
+        );
+    } else {
+        tracing::warn!("trigger_capture: overlay window NOT FOUND");
     }
     Ok(())
 }

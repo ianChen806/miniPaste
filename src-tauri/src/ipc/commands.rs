@@ -82,15 +82,24 @@ pub fn selection_confirmed(
     let cropped = cap.crop(&frame, rect)?;
     *state.cropped.lock().unwrap() = Some(cropped.clone());
 
+    tracing::info!(
+        "selection_confirmed: rect={:?}, cropped_bytes={}, windows={:?}",
+        rect,
+        cropped.len(),
+        app.webview_windows().keys().collect::<Vec<_>>()
+    );
     // Hide overlay, open editor with cropped image.
     if let Some(overlay) = app.get_webview_window("overlay") {
-        let _ = overlay.hide();
+        let r = overlay.hide();
+        tracing::info!("selection_confirmed: overlay.hide() -> {:?}", r);
+    } else {
+        tracing::warn!("selection_confirmed: overlay window NOT FOUND");
     }
     if let Some(editor) = app.get_webview_window("editor") {
         let b64 = base64::engine::general_purpose::STANDARD.encode(&cropped);
-        let _ = editor.show();
-        let _ = editor.set_focus();
-        let _ = editor.emit(
+        let r1 = editor.show();
+        let r2 = editor.set_focus();
+        let r3 = editor.emit(
             "editor-ready",
             serde_json::json!({
                 "image_b64": b64,
@@ -98,6 +107,14 @@ pub fn selection_confirmed(
                 "height": rect.h,
             }),
         );
+        tracing::info!(
+            "selection_confirmed: editor show={:?}, focus={:?}, emit={:?}",
+            r1,
+            r2,
+            r3
+        );
+    } else {
+        tracing::warn!("selection_confirmed: editor window NOT FOUND");
     }
     Ok(())
 }
@@ -107,6 +124,7 @@ pub fn selection_cancelled(
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<(), AppError> {
+    tracing::info!("selection_cancelled invoked");
     {
         let mut phase = state.phase.lock().unwrap();
         let _ = phase.transition(PhaseEvent::Cancelled);
