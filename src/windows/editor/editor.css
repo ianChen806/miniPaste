@@ -1,0 +1,16 @@
+.editor {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  gap: 8px;
+  padding: 8px;
+  background: #1f1f1f;
+  color: #e5e5e5;
+}
+
+.stage-host {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  overflow: auto;
+  min-height: 0;
+}
