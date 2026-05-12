@@ -3,7 +3,8 @@ import Konva from "konva";
 import { onMounted, ref, watch } from "vue";
 import { editorState, commitChange } from "../state/shapes";
 import { renderShape, renderMosaic } from "./drawTools";
-import { MOSAIC_BLOCK } from "../../../shared/colors";
+import { openTextEditor } from "./textTool";
+import { MOSAIC_BLOCK, FONT_SIZE } from "../../../shared/colors";
 import { nanoid } from "nanoid";
 import type { Shape } from "../../../shared/types";
 
@@ -131,9 +132,41 @@ onMounted(() => {
   stage.add(uiLayer);
 
   stage.on("mousedown", () => {
-    if (!isDrawTool(editorState.tool)) return;
     const pos = stage!.getPointerPosition();
     if (!pos) return;
+    if (editorState.tool === "text") {
+      if (!containerRef.value) return;
+      openTextEditor({
+        containerEl: containerRef.value,
+        stagePoint: pos,
+        color: editorState.color,
+        thickness: editorState.thickness,
+        onCommit: (text, bounds) => {
+          const shape: Shape = {
+            id: nanoid(10),
+            tool: "text",
+            color: editorState.color,
+            thickness: editorState.thickness,
+            geometry: {
+              kind: "text",
+              x: pos.x,
+              y: pos.y,
+              w: bounds.w,
+              h: bounds.h,
+            },
+            text: {
+              content: text,
+              fontSize: FONT_SIZE[editorState.thickness],
+            },
+          };
+          editorState.shapes.push(shape);
+          commitChange();
+        },
+        onCancel: () => {},
+      });
+      return;
+    }
+    if (!isDrawTool(editorState.tool)) return;
     drafting = { startX: pos.x, startY: pos.y, node: null };
   });
 

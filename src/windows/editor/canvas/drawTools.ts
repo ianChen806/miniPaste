@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { COLOR_HEX, STROKE_WIDTH } from "../../../shared/colors";
+import { COLOR_HEX, STROKE_WIDTH, FONT_SIZE } from "../../../shared/colors";
 import type { Shape, ShapeGeometry } from "../../../shared/types";
 
 type MosaicGeometry = Extract<ShapeGeometry, { kind: "mosaic" }>;
@@ -74,8 +74,20 @@ export function renderShape(shape: Shape): Konva.Node {
     }
     case "mosaic":
       throw new Error("mosaic must use renderMosaic with bg image");
-    case "text":
-      throw new Error("text must use renderText");
+    case "text": {
+      const g = shape.geometry;
+      return new Konva.Text({
+        x: g.x,
+        y: g.y,
+        width: g.w,
+        height: g.h,
+        text: shape.text?.content ?? "",
+        fill: stroke,
+        fontSize: shape.text?.fontSize ?? FONT_SIZE[shape.thickness],
+        fontFamily: "system-ui, sans-serif",
+        id: shape.id,
+      });
+    }
     default:
       throw new Error(
         `renderShape: ${(shape.geometry as { kind: string }).kind} not yet supported`,
