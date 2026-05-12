@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "minipaste",
+  "version": "0.1.0",
+  "identifier": "dev.minipaste.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "settings",
+        "title": "Minipaste Settings",
+        "url": "settings.html",
+        "width": 480,
+        "height": 360,
+        "resizable": false,
+        "visible": false,
+        "center": true,
+        "decorations": true
+      },
+      {
+        "label": "overlay",
+        "title": "",
+        "url": "overlay.html",
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "skipTaskbar": true,
+        "resizable": false
+      },
+      {
+        "label": "editor",
+        "title": "Minipaste Editor",
+        "url": "editor.html",
+        "width": 1000,
+        "height": 700,
+        "visible": false,
+        "center": true,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ]
+  }
+}
