@@ -25,3 +25,9 @@ test-results/
 # Claude Code runtime
 .claude/
 
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
