@@ -6,8 +6,8 @@ use super::{HotkeyError, HotkeyService};
 pub struct MacosHotkey;
 
 impl MacosHotkey {
-    pub fn new() -> Self {
-        Self
+    pub fn new() -> Result<Self, HotkeyError> {
+        Ok(Self)
     }
 }
 
