@@ -31,25 +31,40 @@ pub fn update_config(
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<(), AppError> {
-    use crate::hotkey::HotkeyService;
+    use crate::hotkey::{HotkeyKind, HotkeyService};
 
     let old = state.config.lock().unwrap().clone();
-    let hotkey_changed = new.hotkey != old.hotkey;
+    let capture_changed = new.hotkey != old.hotkey;
+    let paste_changed = new.paste_pin_hotkey != old.paste_pin_hotkey;
 
-    if hotkey_changed {
+    if capture_changed || paste_changed {
         let mut hk_slot = state.hotkey.lock().unwrap();
         if let Some(hk) = hk_slot.as_mut() {
-            match hk.register(&new.hotkey) {
-                Ok(()) => {}
-                Err(e) => {
+            if capture_changed {
+                if let Err(e) = hk.register(HotkeyKind::Capture, &new.hotkey) {
                     let _ = app.emit(
                         "hotkey-conflict",
                         serde_json::json!({
+                            "kind": "capture",
                             "attempted": new.hotkey,
                             "reason": e.to_string(),
                         }),
                     );
-                    let _ = hk.register(&old.hotkey);
+                    let _ = hk.register(HotkeyKind::Capture, &old.hotkey);
+                    return Err(e.into());
+                }
+            }
+            if paste_changed {
+                if let Err(e) = hk.register(HotkeyKind::PastePin, &new.paste_pin_hotkey) {
+                    let _ = app.emit(
+                        "hotkey-conflict",
+                        serde_json::json!({
+                            "kind": "paste_pin",
+                            "attempted": new.paste_pin_hotkey,
+                            "reason": e.to_string(),
+                        }),
+                    );
+                    let _ = hk.register(HotkeyKind::PastePin, &old.paste_pin_hotkey);
                     return Err(e.into());
                 }
             }

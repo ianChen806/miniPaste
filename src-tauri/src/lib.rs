@@ -11,7 +11,7 @@ pub mod state;
 pub mod tray;
 
 use crate::config::{defaults, store};
-use crate::hotkey::HotkeyService;
+use crate::hotkey::{HotkeyKind, HotkeyService};
 use crate::ipc::commands::{
     cancel_edit, finish_action, get_config, selection_cancelled, selection_confirmed,
     update_config,
@@ -33,17 +33,33 @@ pub fn run() {
         .setup(|app| {
             crate::tray::build_tray(app.handle())?;
 
-            // Register the configured hotkey and keep handle in AppState
-            // so update_config can re-register at runtime.
+            // Register both configured hotkeys (capture + paste-pin) and keep
+            // handle in AppState so update_config can re-register at runtime.
             let state: tauri::State<AppState> = app.state();
-            let combo = state.config.lock().unwrap().hotkey.clone();
+            let (capture_combo, paste_combo) = {
+                let cfg = state.config.lock().unwrap();
+                (cfg.hotkey.clone(), cfg.paste_pin_hotkey.clone())
+            };
             match crate::hotkey::PlatformHotkey::new() {
                 Ok(mut hk) => {
-                    if let Err(e) = hk.register(&combo) {
+                    if let Err(e) = hk.register(HotkeyKind::Capture, &capture_combo) {
+                        tracing::warn!("capture hotkey '{}' conflict: {}", capture_combo, e);
                         let _ = app.emit(
                             "hotkey-conflict",
                             serde_json::json!({
-                                "attempted": combo,
+                                "kind": "capture",
+                                "attempted": capture_combo,
+                                "reason": e.to_string(),
+                            }),
+                        );
+                    }
+                    if let Err(e) = hk.register(HotkeyKind::PastePin, &paste_combo) {
+                        tracing::warn!("paste-pin hotkey '{}' conflict: {}", paste_combo, e);
+                        let _ = app.emit(
+                            "hotkey-conflict",
+                            serde_json::json!({
+                                "kind": "paste_pin",
+                                "attempted": paste_combo,
                                 "reason": e.to_string(),
                             }),
                         );

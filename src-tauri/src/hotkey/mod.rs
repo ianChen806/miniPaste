@@ -13,9 +13,16 @@ pub use windows::WindowsHotkey as PlatformHotkey;
 #[cfg(not(target_os = "windows"))]
 pub use macos::MacosHotkey as PlatformHotkey;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum HotkeyKind {
+    Capture,
+    PastePin,
+}
+
 pub trait HotkeyService: Send + Sync {
-    fn register(&mut self, combo: &str) -> Result<(), HotkeyError>;
-    fn unregister(&mut self);
+    fn register(&mut self, kind: HotkeyKind, combo: &str) -> Result<(), HotkeyError>;
+    fn unregister(&mut self, kind: HotkeyKind);
+    fn id_of(&self, kind: HotkeyKind) -> Option<u32>;
 }
 
 #[derive(thiserror::Error, Debug)]

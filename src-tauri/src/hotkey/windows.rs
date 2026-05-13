@@ -1,16 +1,17 @@
-use super::{HotkeyError, HotkeyService};
+use super::{HotkeyError, HotkeyKind, HotkeyService};
 use global_hotkey::{hotkey::HotKey, GlobalHotKeyEvent, GlobalHotKeyManager};
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub struct WindowsHotkey {
     manager: GlobalHotKeyManager,
-    current: Option<HotKey>,
+    slots: HashMap<HotkeyKind, HotKey>,
 }
 
 // SAFETY: `GlobalHotKeyManager` holds an HWND for a message-only window. The
 // `register`/`unregister` calls dispatch Win32 messages, which are safe to invoke
-// from any thread. We never touch the HWND directly across threads; access is
-// already serialized through `Mutex<Option<WindowsHotkey>>` in `AppState`.
+// from any thread. Access to the manager is already serialized through
+// `Mutex<Option<WindowsHotkey>>` in `AppState`.
 unsafe impl Send for WindowsHotkey {}
 unsafe impl Sync for WindowsHotkey {}
 
@@ -19,21 +20,19 @@ impl WindowsHotkey {
         Ok(Self {
             manager: GlobalHotKeyManager::new()
                 .map_err(|e| HotkeyError::Backend(e.to_string()))?,
-            current: None,
+            slots: HashMap::new(),
         })
     }
 
-    /// Subscribe to global hotkey events. Caller polls this in a thread and
-    /// dispatches into the tray-host state machine.
     pub fn event_receiver() -> crossbeam_channel::Receiver<GlobalHotKeyEvent> {
         GlobalHotKeyEvent::receiver().clone()
     }
 }
 
 impl HotkeyService for WindowsHotkey {
-    fn register(&mut self, combo: &str) -> Result<(), HotkeyError> {
+    fn register(&mut self, kind: HotkeyKind, combo: &str) -> Result<(), HotkeyError> {
         let hk = HotKey::from_str(combo).map_err(|_| HotkeyError::Invalid(combo.into()))?;
-        if let Some(prev) = self.current.take() {
+        if let Some(prev) = self.slots.remove(&kind) {
             let _ = self.manager.unregister(prev);
         }
         self.manager.register(hk).map_err(|e| {
@@ -44,13 +43,17 @@ impl HotkeyService for WindowsHotkey {
                 HotkeyError::Backend(msg)
             }
         })?;
-        self.current = Some(hk);
+        self.slots.insert(kind, hk);
         Ok(())
     }
 
-    fn unregister(&mut self) {
-        if let Some(prev) = self.current.take() {
+    fn unregister(&mut self, kind: HotkeyKind) {
+        if let Some(prev) = self.slots.remove(&kind) {
             let _ = self.manager.unregister(prev);
         }
+    }
+
+    fn id_of(&self, kind: HotkeyKind) -> Option<u32> {
+        self.slots.get(&kind).map(|hk| hk.id())
     }
 }
