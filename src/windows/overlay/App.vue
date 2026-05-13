@@ -166,6 +166,8 @@ function onMouseDown(e: MouseEvent) {
     state.dragStart = { x: e.clientX, y: e.clientY };
     state.dragEnd = { x: e.clientX, y: e.clientY };
   } else if (state.phase === "editing" && state.selection) {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest(".floating-toolbar")) return;
     const pt = { x: e.clientX, y: e.clientY };
     const hit = hitTestHandle(state.selection, pt);
     if (hit === null) {
