@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Konva from "konva";
-import { onMounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { editorState, commitChange } from "../state/shapes";
 import { renderShape, renderMosaic } from "./drawTools";
 import { openTextEditor } from "./textTool";
@@ -123,6 +123,7 @@ onMounted(() => {
     width: props.overlaySize.w || 800,
     height: props.overlaySize.h || 600,
   });
+  (window as unknown as { __editorStage?: Konva.Stage }).__editorStage = stage;
   bgLayer = new Konva.Layer({ listening: false });
   annLayer = new Konva.Layer();
   previewLayer = new Konva.Layer({ listening: false });
@@ -318,6 +319,10 @@ watch(
 );
 
 watch(() => editorState.shapes.length, rerenderAnnotations);
+
+onUnmounted(() => {
+  delete (window as unknown as { __editorStage?: Konva.Stage }).__editorStage;
+});
 
 defineExpose({
   getStage: () => stage,

@@ -8,7 +8,7 @@ import { renderMagnifier, MAGNIFIER_SIZE } from "./magnifier";
 import Stage from "../../shared/editor/canvas/Stage.vue";
 import Toolbar from "../../shared/editor/ui/Toolbar.vue";
 import ActionBar from "../../shared/editor/ui/ActionBar.vue";
-import { resetEditor } from "../../shared/editor/state/shapes";
+import { editorState, resetEditor, undo, redo, commitChange } from "../../shared/editor/state/shapes";
 import Toast from "../../shared/Toast.vue";
 import type { Rect } from "../../shared/types";
 
@@ -143,12 +143,32 @@ onUnmounted(() => {
 function onKey(e: KeyboardEvent) {
   if (state.phase === "idle") return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  const key = e.key.toLowerCase();
   if (e.key === "Escape") {
     e.preventDefault();
     void cancel();
   } else if (e.key === "Enter" && state.phase === "editing") {
     e.preventDefault();
     defaultAction();
+  } else if (state.phase === "editing" && e.ctrlKey && key === "z" && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  } else if (
+    state.phase === "editing" &&
+    ((e.ctrlKey && key === "y") || (e.ctrlKey && e.shiftKey && key === "z"))
+  ) {
+    e.preventDefault();
+    redo();
+  } else if (
+    state.phase === "editing" &&
+    (e.key === "Delete" || e.key === "Backspace") &&
+    editorState.selectedId
+  ) {
+    e.preventDefault();
+    const id = editorState.selectedId;
+    editorState.shapes = editorState.shapes.filter((s) => s.id !== id);
+    editorState.selectedId = null;
+    commitChange();
   }
 }
 
