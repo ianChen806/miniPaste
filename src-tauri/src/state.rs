@@ -17,6 +17,7 @@ pub enum PhaseEvent {
     SelectionConfirmed,
     ActionFinished,
     Cancelled,
+    ReframeRequest,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -33,6 +34,7 @@ impl AppPhase {
         let next = match (*self, ev) {
             (Idle, HotkeyPressed) => Capturing,
             (Capturing, SelectionConfirmed) => Editing,
+            (Editing, ReframeRequest) => Capturing,
             (Editing, ActionFinished) => Idle,
             (Capturing, Cancelled) => Idle,
             (Editing, Cancelled) => Idle,
@@ -110,5 +112,26 @@ mod tests {
         let mut s = AppPhase::Editing;
         assert!(s.transition(PhaseEvent::Cancelled).is_ok());
         assert_eq!(s, AppPhase::Idle);
+    }
+
+    #[test]
+    fn editing_to_capturing_on_reframe() {
+        let mut s = AppPhase::Editing;
+        assert!(s.transition(PhaseEvent::ReframeRequest).is_ok());
+        assert_eq!(s, AppPhase::Capturing);
+    }
+
+    #[test]
+    fn reframe_from_idle_is_err() {
+        let mut s = AppPhase::Idle;
+        assert!(s.transition(PhaseEvent::ReframeRequest).is_err());
+        assert_eq!(s, AppPhase::Idle);
+    }
+
+    #[test]
+    fn reframe_from_capturing_is_err() {
+        let mut s = AppPhase::Capturing;
+        assert!(s.transition(PhaseEvent::ReframeRequest).is_err());
+        assert_eq!(s, AppPhase::Capturing);
     }
 }
