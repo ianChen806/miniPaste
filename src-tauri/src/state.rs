@@ -52,6 +52,7 @@ pub struct AppState {
     pub config: Mutex<Config>,
     pub config_path: PathBuf,
     pub hotkey: Mutex<Option<PlatformHotkey>>,
+    pub pins: crate::pin::registry::PinRegistry,
 }
 
 impl AppState {
@@ -64,6 +65,7 @@ impl AppState {
             config: Mutex::new(config),
             config_path,
             hotkey: Mutex::new(None),
+            pins: crate::pin::registry::PinRegistry::new(),
         }
     }
 }
