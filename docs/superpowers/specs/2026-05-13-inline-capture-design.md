@@ -5,7 +5,7 @@
 
 ## Summary
 
-Convert MiniPaste's capture flow from a two-window pattern (overlay for framing → separate editor window for annotation) into a Snipaste-style single-overlay flow: framing, annotation, and terminal actions all happen on the same fullscreen overlay window. The selection rectangle is mutable (8 resize handles + drag-move). A magnifier loupe assists pixel-precise framing. A floating toolbar follows the selection. Annotations are clipped to the selection and rescale with it. A new `PinFromOverlay` terminal action reuses the existing pin service. The `editor` Tauri window is retired.
+Convert MiniPaste's capture flow from a two-window pattern (overlay for framing → separate editor window for annotation) into a Snipaste-style single-overlay flow: framing, annotation, and terminal actions all happen on the same fullscreen overlay window. The selection rectangle is mutable (8 resize handles + drag-move). A magnifier loupe assists pixel-precise framing. A floating toolbar follows the selection. Annotations are pixel-anchored to the overlay; the selection is a clipping viewport. A new `PinFromOverlay` terminal action reuses the existing pin service. The `editor` Tauri window is retired.
 
 ## Goals
 
@@ -34,7 +34,7 @@ Convert MiniPaste's capture flow from a two-window pattern (overlay for framing 
 | Magnifier loupe | Shown during initial drag and during handle drag; off during free annotation; 5× zoom, 120×120, offset away from cursor |
 | Drawing tool set | Existing 5: line / rect / arrow / mosaic / text (no new pen) |
 | Terminal actions | Existing Copy / Save / Save+Copy plus **new Pin** |
-| Annotation coordinate system | Selection-relative; rescale on resize; stroke width stays constant |
+| Annotation coordinate system | Pixel-anchored (overlay-global coords); selection acts as a clipping viewport; annotations do NOT move or scale when the selection is moved or resized — they stay at the original pixel positions and clip outside the selection |
 | Esc / right-click | Cancel entire capture |
 | Left-click outside selection | Reframe (clear annotations, clear selection, return to framing) |
 | Double-click inside selection / Enter | Default terminal action = Copy |
@@ -114,7 +114,7 @@ src/shared/editor/                  NEW (moved from src/windows/editor/)
 │   ├── drawTools.ts                Per-tool pointer handlers
 │   └── textTool.ts                 Text input overlay logic
 ├── state/
-│   ├── shapes.ts                   editorState reactive, undo/redo, rescaleShapes
+│   ├── shapes.ts                   editorState reactive, undo/redo (unchanged from current editor)
 │   └── history.ts                  Undo/redo stack
 └── ui/
     ├── Toolbar.vue                 Drawing tools + colors + thickness + undo/redo
@@ -223,21 +223,31 @@ Horizontal x is clamped so toolbar stays inside overlay bounds.
 ### `src/shared/editor/canvas/Stage.vue` (moved + re-parameterized)
 
 **Old props:** `imageUrl, width, height`
-**New props:** `selection: Rect, overlaySize: { w, h }`
+**New props:** `bgUrl: string, selection: Rect, overlaySize: { w: number; h: number }`
 
-Background image is provided by the overlay (already loaded into `<img>` for magnifier reuse); Stage no longer fetches it. Stage absolutely positions itself at `left = selection.x, top = selection.y`, with `width = selection.w, height = selection.h`, and `overflow: hidden`.
+Annotations are **pixel-anchored to the overlay's coordinate space** (i.e. shape coords range over `0..overlaySize.w / 0..overlaySize.h`), not selection-local. The selection rect is a clipping viewport, not a coordinate origin.
 
-Shape coordinates are stored relative to Stage's `(0, 0)` (i.e. selection-local).
+Layout:
+- **Outer DOM container:** absolutely positioned at `left = selection.x, top = selection.y`, sized `selection.w × selection.h`, `overflow: hidden`.
+- **Konva stage:** sized `overlaySize.w × overlaySize.h` (the full overlay), positioned inside the container at `left = -selection.x, top = -selection.y` so only the selection portion is visible through the clip.
+- **Background layer:** a single Konva.Image of the overlay's full background at `(0, 0)`, size `overlaySize`.
+- **Annotation layer:** shapes drawn at their overlay-pixel coords. Shapes outside the selection are present but invisible (clipped by the outer container's `overflow: hidden`).
 
-When the `selection` prop changes, Stage distinguishes two cases:
-- **Move only** (`x`/`y` change, `w`/`h` unchanged): no shape mutation needed — Stage repositions itself absolutely; shapes move with it for free because their coordinates are selection-local.
-- **Resize** (`w` or `h` change): Stage calls `rescaleShapes(prevRect, newRect)` to scale all shape coordinates proportionally. Stroke widths are not scaled.
+When the `selection` prop changes — whether move or resize — only the outer container's `top/left/width/height` and the stage's CSS offset update. Shape coordinates are not touched. The user sees the same pixels of background and annotation that exist in the new selection window.
 
-Both cases happen live during handle/body drag, not on drag-end, so the UX matches Snipaste.
+PNG export uses Konva's rectangle option:
+```ts
+stage.toDataURL({
+  x: selection.x, y: selection.y,
+  width: selection.w, height: selection.h,
+  pixelRatio: 1,
+});
+```
+This produces a `selection.w × selection.h` PNG containing the cropped background + clipped annotations.
 
-### `src/shared/editor/state/shapes.ts` (moved + extended)
+### `src/shared/editor/state/shapes.ts` (moved, unchanged)
 
-Adds `rescaleShapes(oldRect: Rect, newRect: Rect): void` that mutates `editorState.shapes` in place (already reactive). Coordinates scale by `newRect.w / oldRect.w` and `newRect.h / oldRect.h`; stroke widths are untouched.
+No API change — the file moves with all current exports (`editorState`, `commitChange`, `resetEditor`, `undo`, `redo`, `newShape`) intact. Pixel-anchored annotations remove the need for a rescale routine; shape coordinates are not mutated on selection changes.
 
 ### `src/shared/editor/ui/ActionBar.vue` (moved + extended)
 
@@ -478,7 +488,7 @@ export interface Rect { x: number; y: number; w: number; h: number }
 | `handles.test.ts` *(NEW)* | `hitTestHandle` matrix (each handle, inside-is-move, outside-is-null); `resizeRect` per handle × delta with minSize clamp; `cursorForHandle` for all 8 + move |
 | `magnifier.test.ts` *(NEW)* | `renderMagnifier` does not throw on valid inputs; no pixel-level golden comparison |
 | `toolbarPlacement.test.ts` *(NEW)* | Below when fits; above when below tight; inside fallback; horizontal clamp at right/left edges |
-| `shapes.test.ts` *(UPDATE)* | `rescaleShapes`: coordinates scale proportionally; stroke widths unchanged |
+| `shapes.test.ts` *(existing)* | Unchanged — pixel-anchored annotations need no rescale logic |
 | `selection.test.ts` *(existing)* | Unchanged |
 
 ### Manual test checklist
@@ -498,9 +508,9 @@ Appended to `docs/manual-test-checklist.md` under a new "Inline Capture (Snipast
 - [ ] mouseup shows 8 handles + toolbar below selection
 - [ ] Toolbar flips above when below is tight
 - [ ] Toolbar falls back to inside when overlay is shorter than expected
-- [ ] Resizing via handle: shapes scale proportionally, stroke width stays constant
+- [ ] Resizing via handle: annotations stay at their original pixel positions, get clipped if outside new selection
 - [ ] Magnifier appears during handle drag
-- [ ] Dragging selection body moves selection + shapes together
+- [ ] Dragging selection body slides the viewport over the fixed background; annotations stay at their pixel positions and reveal/clip as the selection moves
 - [ ] Left-click outside selection → shapes cleared, returns to framing
 - [ ] Double-click inside selection → default action (Copy) + exit
 - [ ] Enter → default action (Copy) + exit
