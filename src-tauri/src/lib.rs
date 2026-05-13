@@ -13,7 +13,7 @@ pub mod tray;
 use crate::config::{defaults, store};
 use crate::hotkey::{HotkeyKind, HotkeyService};
 use crate::ipc::commands::{
-    cancel_edit, finish_action, get_config, selection_cancelled, selection_confirmed,
+    cancel_edit, finish_action, get_config, pin_close, selection_cancelled, selection_confirmed,
     update_config,
 };
 use crate::state::AppState;
@@ -116,6 +116,7 @@ pub fn run() {
             selection_cancelled,
             finish_action,
             cancel_edit,
+            pin_close,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

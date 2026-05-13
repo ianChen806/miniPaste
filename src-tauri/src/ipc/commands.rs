@@ -230,6 +230,19 @@ fn finalize(
 }
 
 #[tauri::command]
+pub fn pin_close(
+    label: String,
+    state: State<AppState>,
+    app: AppHandle,
+) -> Result<(), AppError> {
+    if let Some(win) = app.get_webview_window(&label) {
+        let _ = win.close();
+    }
+    state.pins.release(&label);
+    Ok(())
+}
+
+#[tauri::command]
 pub fn cancel_edit(
     state: State<AppState>,
     app: AppHandle,
