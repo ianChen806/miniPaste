@@ -1,20 +1,39 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { call, on } from "../../shared/ipc";
-import { rectFromDrag, clampToBounds, type Point } from "./selection";
+import { rectFromDrag, clampToBounds, type Point as SelPoint } from "./selection";
+import { hitTestHandle, resizeRect, type HandleId } from "./handles";
+import { placeToolbar } from "./toolbarPlacement";
+import { renderMagnifier, MAGNIFIER_SIZE } from "./magnifier";
+import Stage from "../../shared/editor/canvas/Stage.vue";
+import Toolbar from "../../shared/editor/ui/Toolbar.vue";
+import ActionBar from "../../shared/editor/ui/ActionBar.vue";
+import { resetEditor } from "../../shared/editor/state/shapes";
 import Toast from "../../shared/Toast.vue";
+import type { Rect } from "../../shared/types";
+
+type Phase = "idle" | "framing" | "editing";
 
 const state = reactive({
+  phase: "idle" as Phase,
   bgUrl: "",
   width: 0,
   height: 0,
   origin: { x: 0, y: 0 },
-  dragStart: null as Point | null,
-  dragEnd: null as Point | null,
+  dragStart: null as SelPoint | null,
+  dragEnd: null as SelPoint | null,
+  selection: null as Rect | null,
+  cursor: null as SelPoint | null,
+  activeHandle: null as HandleId | null,
+  dragLast: null as SelPoint | null,
 });
 
-const selectionStyle = computed(() => {
-  if (!state.dragStart || !state.dragEnd) return {};
+const bgImg = ref<HTMLImageElement | null>(null);
+const magCanvas = ref<HTMLCanvasElement | null>(null);
+const toolbarRef = ref<HTMLDivElement | null>(null);
+
+const framingRectStyle = computed(() => {
+  if (!state.dragStart || !state.dragEnd) return { display: "none" };
   const r = rectFromDrag(state.dragStart, state.dragEnd);
   return {
     left: r.x + "px",
@@ -24,6 +43,62 @@ const selectionStyle = computed(() => {
   };
 });
 
+const selectionStyle = computed(() => {
+  if (!state.selection) return { display: "none" };
+  const s = state.selection;
+  return {
+    left: s.x + "px",
+    top: s.y + "px",
+    width: s.w + "px",
+    height: s.h + "px",
+  };
+});
+
+const stageOffsetStyle = computed(() => {
+  if (!state.selection) return { display: "none" };
+  return {
+    left: -state.selection.x + "px",
+    top: -state.selection.y + "px",
+  };
+});
+
+const toolbarPlacement = computed(() => {
+  if (!state.selection) return null;
+  const tbar = toolbarRef.value
+    ? { w: toolbarRef.value.offsetWidth, h: toolbarRef.value.offsetHeight }
+    : { w: 320, h: 80 };
+  return placeToolbar(
+    state.selection,
+    tbar,
+    { w: state.width, h: state.height },
+  );
+});
+
+const toolbarStyle = computed(() => {
+  const p = toolbarPlacement.value;
+  if (!p) return { display: "none" };
+  return { left: p.x + "px", top: p.y + "px" };
+});
+
+const magnifierStyle = computed(() => {
+  if (!state.cursor) return { display: "none" };
+  const off = 20;
+  const right = state.cursor.x + off + MAGNIFIER_SIZE > state.width;
+  const bottom = state.cursor.y + off + MAGNIFIER_SIZE > state.height;
+  const left = right ? state.cursor.x - off - MAGNIFIER_SIZE : state.cursor.x + off;
+  const top = bottom ? state.cursor.y - off - MAGNIFIER_SIZE : state.cursor.y + off;
+  return { left: left + "px", top: top + "px" };
+});
+
+function drawMagnifier() {
+  if (!magCanvas.value || !bgImg.value || !state.cursor) return;
+  const ctx = magCanvas.value.getContext("2d");
+  if (!ctx) return;
+  renderMagnifier(ctx, bgImg.value, state.cursor, 5);
+}
+
+watch(() => state.cursor, drawMagnifier);
+
 onMounted(() => {
   on<{
     thumbnail_b64: string;
@@ -31,51 +106,142 @@ onMounted(() => {
     height: number;
     origin_x: number;
     origin_y: number;
-  }>("capture-ready", (p) => {
+  }>("capture-ready", async (p) => {
     state.bgUrl = `data:image/png;base64,${p.thumbnail_b64}`;
     state.width = p.width;
     state.height = p.height;
     state.origin = { x: p.origin_x, y: p.origin_y };
+    const img = new Image();
+    img.src = state.bgUrl;
+    await img.decode().catch(() => {});
+    bgImg.value = img;
+    resetEditor();
+    state.phase = "framing";
+    state.selection = null;
+    state.dragStart = null;
+    state.dragEnd = null;
+    state.cursor = null;
   });
+
   on("capture-clear", () => {
+    state.phase = "idle";
     state.bgUrl = "";
+    state.selection = null;
+    state.dragStart = null;
+    state.dragEnd = null;
+    state.cursor = null;
+    resetEditor();
   });
+
   window.addEventListener("keydown", onKey);
 });
 
-onUnmounted(() => window.removeEventListener("keydown", onKey));
+onUnmounted(() => {
+  window.removeEventListener("keydown", onKey);
+});
 
 function onKey(e: KeyboardEvent) {
-  if (e.key === "Escape") cancel();
-}
-
-function onMouseDown(e: MouseEvent) {
-  state.dragStart = { x: e.clientX, y: e.clientY };
-  state.dragEnd = { x: e.clientX, y: e.clientY };
-}
-
-function onMouseMove(e: MouseEvent) {
-  if (state.dragStart) state.dragEnd = { x: e.clientX, y: e.clientY };
-}
-
-async function onMouseUp() {
-  if (!state.dragStart || !state.dragEnd) return;
-  const local = rectFromDrag(state.dragStart, state.dragEnd);
-  const clamped = clampToBounds(local, state.width, state.height);
-  state.dragStart = null;
-  state.dragEnd = null;
-  if (clamped.w < 5 || clamped.h < 5) return;
-  const rectInOsCoords = {
-    x: clamped.x + state.origin.x,
-    y: clamped.y + state.origin.y,
-    w: clamped.w,
-    h: clamped.h,
-  };
-  await call("selection_confirmed", { rect: rectInOsCoords });
+  if (state.phase === "idle") return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.key === "Escape") {
+    e.preventDefault();
+    void cancel();
+  } else if (e.key === "Enter" && state.phase === "editing") {
+    e.preventDefault();
+    defaultAction();
+  }
 }
 
 async function cancel() {
   await call("selection_cancelled");
+}
+
+function defaultAction() {
+  const hook = (window as unknown as { __overlayActionBarCopy?: () => void }).__overlayActionBarCopy;
+  if (hook) hook();
+}
+
+function onMouseDown(e: MouseEvent) {
+  if (state.phase === "framing") {
+    state.dragStart = { x: e.clientX, y: e.clientY };
+    state.dragEnd = { x: e.clientX, y: e.clientY };
+  } else if (state.phase === "editing" && state.selection) {
+    const pt = { x: e.clientX, y: e.clientY };
+    const hit = hitTestHandle(state.selection, pt);
+    if (hit === null) {
+      void requestReframe();
+    } else {
+      state.activeHandle = hit;
+      state.dragLast = pt;
+    }
+  }
+}
+
+function onMouseMove(e: MouseEvent) {
+  const pt = { x: e.clientX, y: e.clientY };
+  if (state.phase === "framing") {
+    state.cursor = pt;
+    if (state.dragStart) state.dragEnd = pt;
+  } else if (state.phase === "editing" && state.activeHandle && state.dragLast && state.selection) {
+    const delta = { x: pt.x - state.dragLast.x, y: pt.y - state.dragLast.y };
+    state.selection = resizeRect(state.selection, state.activeHandle, delta);
+    state.dragLast = pt;
+    state.cursor = pt;
+  } else {
+    state.cursor = null;
+  }
+}
+
+async function onMouseUp() {
+  if (state.phase === "framing") {
+    if (!state.dragStart || !state.dragEnd) return;
+    const local = rectFromDrag(state.dragStart, state.dragEnd);
+    const clamped = clampToBounds(local, state.width, state.height);
+    state.dragStart = null;
+    state.dragEnd = null;
+    if (clamped.w < 5 || clamped.h < 5) return;
+    state.selection = clamped;
+    try {
+      await call("selection_confirmed", {
+        rect: {
+          x: clamped.x + state.origin.x,
+          y: clamped.y + state.origin.y,
+          w: clamped.w,
+          h: clamped.h,
+        },
+      });
+      state.phase = "editing";
+      state.cursor = null;
+    } catch (err) {
+      state.selection = null;
+      state.phase = "framing";
+      throw err;
+    }
+  } else if (state.phase === "editing" && state.activeHandle) {
+    state.activeHandle = null;
+    state.dragLast = null;
+    state.cursor = null;
+  }
+}
+
+async function requestReframe() {
+  try {
+    await call("reframe_request");
+  } catch {
+    /* race: phase already changed elsewhere; ignore */
+  }
+  state.phase = "framing";
+  state.selection = null;
+  resetEditor();
+}
+
+function onDblClick() {
+  if (state.phase === "editing") defaultAction();
+}
+
+function onContextMenu(e: MouseEvent) {
+  e.preventDefault();
+  void cancel();
 }
 </script>
 
@@ -86,13 +252,50 @@ async function cancel() {
     @mousedown="onMouseDown"
     @mousemove="onMouseMove"
     @mouseup="onMouseUp"
+    @dblclick="onDblClick"
+    @contextmenu="onContextMenu"
   >
     <div class="dim"></div>
-    <div
-      v-if="state.dragStart && state.dragEnd"
-      class="selection"
-      :style="selectionStyle"
-    ></div>
+
+    <div v-if="state.phase === 'framing'" class="selection" :style="framingRectStyle"></div>
+
+    <template v-if="state.phase === 'editing' && state.selection">
+      <div class="selection editing-frame" :style="selectionStyle">
+        <div class="handle nw"></div>
+        <div class="handle n"></div>
+        <div class="handle ne"></div>
+        <div class="handle e"></div>
+        <div class="handle se"></div>
+        <div class="handle s"></div>
+        <div class="handle sw"></div>
+        <div class="handle w"></div>
+      </div>
+
+      <div class="stage-clip" :style="selectionStyle">
+        <div class="stage-inner" :style="stageOffsetStyle">
+          <Stage
+            :bg-url="state.bgUrl"
+            :selection="state.selection"
+            :overlay-size="{ w: state.width, h: state.height }"
+          />
+        </div>
+      </div>
+
+      <div class="floating-toolbar" :style="toolbarStyle" ref="toolbarRef">
+        <Toolbar />
+        <ActionBar />
+      </div>
+    </template>
+
+    <canvas
+      v-if="state.cursor"
+      class="magnifier"
+      :style="magnifierStyle"
+      ref="magCanvas"
+      width="120"
+      height="120"
+    ></canvas>
+
     <Toast />
   </div>
 </template>

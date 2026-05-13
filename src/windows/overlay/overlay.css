@@ -35,3 +35,58 @@ body,
   pointer-events: none;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
 }
+
+.editing-frame {
+  border: 2px solid rgba(0, 128, 255, 0.95);
+  background: transparent;
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border: 1px solid rgba(0, 128, 255, 0.95);
+  pointer-events: none;
+}
+.handle.nw { left: -5px; top: -5px; }
+.handle.n  { left: calc(50% - 4px); top: -5px; }
+.handle.ne { right: -5px; top: -5px; }
+.handle.e  { right: -5px; top: calc(50% - 4px); }
+.handle.se { right: -5px; bottom: -5px; }
+.handle.s  { left: calc(50% - 4px); bottom: -5px; }
+.handle.sw { left: -5px; bottom: -5px; }
+.handle.w  { left: -5px; top: calc(50% - 4px); }
+
+.stage-clip {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: auto;
+  box-shadow: none;
+  background: transparent;
+  border: none;
+}
+.stage-inner {
+  position: absolute;
+}
+
+.floating-toolbar {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(30, 30, 30, 0.92);
+  border-radius: 6px;
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.magnifier {
+  position: absolute;
+  pointer-events: none;
+  z-index: 20;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+}
