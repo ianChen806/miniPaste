@@ -73,3 +73,34 @@ For each tool (line, rect, arrow, mosaic, text):
 - [ ] Spawn 5+ pins → all responsive, RAM < 300 MB total
 - [ ] Settings: change paste-pin hotkey to `Ctrl+Alt+V` → new hotkey works, old does not
 - [ ] Restart app → paste-pin hotkey config persists
+
+## Inline Capture (Snipaste-style)
+
+### Framing
+- [ ] Capture hotkey → overlay shows, drag-to-frame works
+- [ ] Magnifier follows cursor, offsets away from it, shows correct coords
+- [ ] Drag < 5px → no transition, can re-drag
+- [ ] Esc → cancels back to idle
+
+### Editing
+- [ ] mouseup shows 8 handles + toolbar below selection
+- [ ] Toolbar flips above when below is tight
+- [ ] Toolbar falls back to inside when overlay is shorter than expected
+- [ ] Resizing via handle: annotations stay at their pixel positions, clip outside new selection
+- [ ] Magnifier appears during handle drag
+- [ ] Dragging selection body (inside selection): viewport slides over fixed background; annotations reveal/clip as the selection moves
+- [ ] Left-click outside selection → shapes cleared, returns to framing
+- [ ] Double-click inside selection → default action (Copy) + exit
+- [ ] Enter → default action (Copy) + exit
+- [ ] Esc / right-click → cancels everything
+
+### Finish actions
+- [ ] Copy → clipboard has image, overlay exits
+- [ ] Save → dialog, path picked, file written, toast
+- [ ] Save+Copy → default path used, clipboard FileList set, toast
+- [ ] Pin → pin window spawned with edited image, overlay exits
+- [ ] Any action failure → toast shown, stays in editing
+
+### Multi-monitor
+- [ ] Primary + secondary monitor both captureable
+- [ ] Cross-monitor selection, magnifier, toolbar placement all correct
