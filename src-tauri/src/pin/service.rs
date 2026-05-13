@@ -30,7 +30,7 @@ pub fn paste_from_clipboard(app: &AppHandle) {
         }
     };
 
-    if let Err(msg) = spawn_pin(app, png) {
+    if let Err(msg) = spawn_from_bytes(app, png) {
         emit_error(app, msg);
     }
 }
@@ -79,7 +79,7 @@ fn path_to_png(path: &Path) -> Result<Vec<u8>, String> {
     Ok(out.into_inner())
 }
 
-fn spawn_pin(app: &AppHandle, png_bytes: Vec<u8>) -> Result<(), String> {
+pub fn spawn_from_bytes(app: &AppHandle, png_bytes: Vec<u8>) -> Result<(), String> {
     let img =
         image::load_from_memory(&png_bytes).map_err(|e| format!("圖片解碼失敗：{}", e))?;
     let (w, h) = (img.width(), img.height());
