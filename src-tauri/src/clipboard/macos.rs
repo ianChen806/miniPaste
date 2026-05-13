@@ -17,4 +17,8 @@ impl Clipboard for MacosClipboard {
     fn write_file_paths(&self, _paths: &[PathBuf]) -> Result<(), ClipboardError> {
         unimplemented!("non-Windows clipboard deferred")
     }
+
+    fn read_paste_content(&self) -> Result<super::PasteContent, ClipboardError> {
+        unimplemented!("paste-pin not supported on non-Windows builds")
+    }
 }

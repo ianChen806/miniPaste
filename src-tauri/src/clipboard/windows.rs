@@ -53,6 +53,10 @@ impl Clipboard for WindowsClipboard {
                 .map_err(|e| ClipboardError::Backend(e.to_string()))
         })
     }
+
+    fn read_paste_content(&self) -> Result<super::PasteContent, ClipboardError> {
+        Ok(super::PasteContent::Empty) // real impl in T5
+    }
 }
 
 fn retry_3<F>(mut f: F) -> Result<(), ClipboardError>
