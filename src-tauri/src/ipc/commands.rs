@@ -232,9 +232,6 @@ fn finalize(
     }
     *state.cropped.lock().unwrap() = None;
     *state.capture.lock().unwrap() = None;
-    if let Some(editor) = app.get_webview_window("editor") {
-        let _ = editor.hide();
-    }
     let _ = app.emit(
         "action-complete",
         serde_json::json!({ "saved_path": outcome.saved_path }),
@@ -258,7 +255,7 @@ pub fn pin_close(
 #[tauri::command]
 pub fn cancel_edit(
     state: State<AppState>,
-    app: AppHandle,
+    _app: AppHandle,
 ) -> Result<(), AppError> {
     {
         let mut phase = state.phase.lock().unwrap();
@@ -266,9 +263,6 @@ pub fn cancel_edit(
     }
     *state.cropped.lock().unwrap() = None;
     *state.capture.lock().unwrap() = None;
-    if let Some(editor) = app.get_webview_window("editor") {
-        let _ = editor.hide();
-    }
     Ok(())
 }
 

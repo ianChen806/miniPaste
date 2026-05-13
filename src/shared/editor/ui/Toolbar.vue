@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { editorState, undo, redo } from "../state/shapes";
-import { COLOR_HEX, COLOR_ORDER } from "../../../shared/colors";
-import type { ToolType, Thickness } from "../../../shared/types";
+import { COLOR_HEX, COLOR_ORDER } from "../../colors";
+import type { ToolType, Thickness } from "../../types";
 
 const tools: { key: ToolType; label: string }[] = [
   { key: "line", label: "／" },

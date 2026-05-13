@@ -1,6 +1,6 @@
 import Konva from "konva";
-import { COLOR_HEX, STROKE_WIDTH, FONT_SIZE } from "../../../shared/colors";
-import type { Shape, ShapeGeometry } from "../../../shared/types";
+import { COLOR_HEX, STROKE_WIDTH, FONT_SIZE } from "../../colors";
+import type { Shape, ShapeGeometry } from "../../types";
 
 type MosaicGeometry = Extract<ShapeGeometry, { kind: "mosaic" }>;
 type MosaicShape = Shape & { geometry: MosaicGeometry };

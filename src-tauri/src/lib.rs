@@ -100,7 +100,7 @@ pub fn run() {
 
             // Intercept window close: hide and reset phase instead of destroying,
             // so windows can be reused next time they're shown.
-            for label in ["editor", "overlay", "settings"] {
+            for label in ["overlay", "settings"] {
                 if let Some(win) = app.get_webview_window(label) {
                     let app_handle = app.handle().clone();
                     let label = label.to_string();

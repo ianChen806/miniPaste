@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createHistory } from "../windows/editor/state/history";
+import { createHistory } from "../shared/editor/state/history";
 import type { Shape } from "../shared/types";
 
 const s = (id: string): Shape => ({

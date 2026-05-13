@@ -11,9 +11,6 @@ async function bootstrap() {
     case "overlay":
       App = (await import("./windows/overlay/App.vue")).default;
       break;
-    case "editor":
-      App = (await import("./windows/editor/App.vue")).default;
-      break;
     case "pin":
       App = (await import("./windows/pin/App.vue")).default;
       break;

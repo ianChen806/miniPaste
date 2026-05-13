@@ -1,4 +1,4 @@
-import type { Shape } from "../../../shared/types";
+import type { Shape } from "../../types";
 
 export interface History {
   push(snapshot: Shape[]): void;

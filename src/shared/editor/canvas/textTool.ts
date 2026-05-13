@@ -1,5 +1,5 @@
-import { COLOR_HEX, FONT_SIZE } from "../../../shared/colors";
-import type { ColorKey, Thickness } from "../../../shared/types";
+import { COLOR_HEX, FONT_SIZE } from "../../colors";
+import type { ColorKey, Thickness } from "../../types";
 
 export interface TextEditOptions {
   containerEl: HTMLElement;

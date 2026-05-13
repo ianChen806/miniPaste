@@ -4,14 +4,14 @@ import { onMounted, ref, watch } from "vue";
 import { editorState, commitChange } from "../state/shapes";
 import { renderShape, renderMosaic } from "./drawTools";
 import { openTextEditor } from "./textTool";
-import { MOSAIC_BLOCK, FONT_SIZE } from "../../../shared/colors";
+import { MOSAIC_BLOCK, FONT_SIZE } from "../../colors";
 import { nanoid } from "nanoid";
-import type { Shape } from "../../../shared/types";
+import type { Shape } from "../../types";
 
 const props = defineProps<{
-  imageUrl: string;
-  width: number;
-  height: number;
+  bgUrl: string;
+  selection: { x: number; y: number; w: number; h: number };
+  overlaySize: { w: number; h: number };
 }>();
 
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -120,8 +120,8 @@ onMounted(() => {
   if (!containerRef.value) return;
   stage = new Konva.Stage({
     container: containerRef.value,
-    width: props.width || 800,
-    height: props.height || 600,
+    width: props.overlaySize.w || 800,
+    height: props.overlaySize.h || 600,
   });
   bgLayer = new Konva.Layer({ listening: false });
   annLayer = new Konva.Layer();
@@ -290,7 +290,7 @@ function rerenderAnnotations() {
 }
 
 watch(
-  () => props.imageUrl,
+  () => props.bgUrl,
   async (url) => {
     if (!url || !stage || !bgLayer) return;
     const img = new Image();
@@ -305,15 +305,16 @@ watch(
       image: img,
       x: 0,
       y: 0,
-      width: props.width,
-      height: props.height,
+      width: props.overlaySize.w,
+      height: props.overlaySize.h,
     });
     bgLayer.destroyChildren();
     bgLayer.add(kImg);
     bgLayer.draw();
-    stage.size({ width: props.width, height: props.height });
+    stage.size({ width: props.overlaySize.w, height: props.overlaySize.h });
     rerenderAnnotations();
   },
+  { immediate: true },
 );
 
 watch(() => editorState.shapes.length, rerenderAnnotations);

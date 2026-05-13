@@ -5,7 +5,7 @@ import type {
   ToolType,
   ColorKey,
   Thickness,
-} from "../../../shared/types";
+} from "../../types";
 import { createHistory } from "./history";
 
 const nid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 10);

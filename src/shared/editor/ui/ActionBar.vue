@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { call } from "../../../shared/ipc";
-import { pushToast } from "../../../shared/toast";
-import type { FinishAction, FinishOutcome } from "../../../shared/types";
+import { onMounted, onUnmounted } from "vue";
+import { call } from "../../ipc";
+import { pushToast } from "../../toast";
+import type { FinishAction, FinishOutcome } from "../../types";
 import type Konva from "konva";
 
 interface EditorStageGlobal {
@@ -52,6 +53,22 @@ async function saveAs() {
 async function saveAndCopy() {
   doAction({ kind: "SaveAndCopyPath" });
 }
+
+async function pinIt() {
+  doAction({ kind: "PinFromOverlay" });
+}
+
+interface OverlayCopyHook {
+  __overlayActionBarCopy?: () => void;
+}
+
+onMounted(() => {
+  (window as unknown as OverlayCopyHook).__overlayActionBarCopy = copyImage;
+});
+
+onUnmounted(() => {
+  delete (window as unknown as OverlayCopyHook).__overlayActionBarCopy;
+});
 </script>
 
 <template>
@@ -59,6 +76,7 @@ async function saveAndCopy() {
     <button @click="copyImage">Copy</button>
     <button @click="saveAs">Save...</button>
     <button @click="saveAndCopy">Save+Copy</button>
+    <button @click="pinIt">Pin</button>
   </div>
 </template>
 
