@@ -37,6 +37,9 @@ onMounted(() => {
     state.height = p.height;
     state.origin = { x: p.origin_x, y: p.origin_y };
   });
+  on("capture-clear", () => {
+    state.bgUrl = "";
+  });
   window.addEventListener("keydown", onKey);
 });
 

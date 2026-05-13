@@ -5,7 +5,11 @@ use crate::state::{AppState, PhaseEvent};
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
+
+/// Off-screen position where the overlay parks when idle. Must match
+/// `OVERLAY_PARK_POS` in lib.rs.
+const OVERLAY_PARK_POS: PhysicalPosition<i32> = PhysicalPosition { x: -32000, y: -32000 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
@@ -103,10 +107,12 @@ pub fn selection_confirmed(
         cropped.len(),
         app.webview_windows().keys().collect::<Vec<_>>()
     );
-    // Hide overlay, open editor with cropped image.
+    // Park overlay off-screen (NOT hide — see OVERLAY_PARK_POS comment in lib.rs)
+    // and open editor with cropped image.
     if let Some(overlay) = app.get_webview_window("overlay") {
-        let r = overlay.hide();
-        tracing::info!("selection_confirmed: overlay.hide() -> {:?}", r);
+        let _ = overlay.emit("capture-clear", ());
+        let r = overlay.set_position(OVERLAY_PARK_POS);
+        tracing::info!("selection_confirmed: overlay parked -> {:?}", r);
     } else {
         tracing::warn!("selection_confirmed: overlay window NOT FOUND");
     }
@@ -146,7 +152,8 @@ pub fn selection_cancelled(
     }
     *state.capture.lock().unwrap() = None;
     if let Some(overlay) = app.get_webview_window("overlay") {
-        let _ = overlay.hide();
+        let _ = overlay.emit("capture-clear", ());
+        let _ = overlay.set_position(OVERLAY_PARK_POS);
     }
     Ok(())
 }

@@ -17,7 +17,15 @@ use crate::ipc::commands::{
     update_config,
 };
 use crate::state::AppState;
-use tauri::{Emitter, Listener, Manager, WindowEvent};
+use tauri::{Emitter, Listener, Manager, PhysicalPosition, WindowEvent};
+
+/// Far off-screen position where the overlay window parks when not capturing.
+/// Win32 window coordinates are i32; (-32000, -32000) is well outside any real
+/// virtual desktop and is the convention Windows itself uses for "hidden but
+/// alive" windows (see GetWindowPlacement). Keeping the overlay always visible
+/// at this position avoids the 100ms WebView2 first-paint flicker that occurs
+/// on every hide → show transition.
+const OVERLAY_PARK_POS: PhysicalPosition<i32> = PhysicalPosition { x: -32000, y: -32000 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -72,6 +80,15 @@ pub fn run() {
             }
 
             crate::hotkey::listener::spawn(app.handle().clone());
+
+            // Park the overlay window off-screen and show it once. From now on
+            // the window stays visible (at -32000,-32000 when idle); capture
+            // simply repositions it instead of toggling hide/show — eliminates
+            // WebView2's first-paint grey flicker.
+            if let Some(overlay) = app.get_webview_window("overlay") {
+                let _ = overlay.set_position(OVERLAY_PARK_POS);
+                let _ = overlay.show();
+            }
 
             // Bridge the tray/hotkey "trigger capture" event into the capture pipeline.
             let app_handle = app.handle().clone();
