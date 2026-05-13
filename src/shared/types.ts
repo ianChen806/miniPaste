@@ -3,6 +3,7 @@ export type ImageFormat = "png" | "jpeg";
 export interface Config {
   schema_version: number;
   hotkey: string;
+  paste_pin_hotkey: string;
   default_save_path: string;
   image_format: ImageFormat;
   jpeg_quality: number;
