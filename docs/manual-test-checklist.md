@@ -55,3 +55,21 @@ For each tool (line, rect, arrow, mosaic, text):
 ## Logs
 - [ ] `%APPDATA%/minipaste/logs/minipaste.log` exists and has entries
 - [ ] After deliberate panic (debug build), `LAST_CRASH` file is created
+
+## Paste Pin
+
+- [ ] Default hotkey `Ctrl+Shift+V` pins clipboard image (copy a screenshot first)
+- [ ] Hotkey pins clipboard text → renders as image (try ASCII + 中文 mixed)
+- [ ] Hotkey pins clipboard file path when file is PNG/JPG/GIF/BMP (copy a file in Explorer)
+- [ ] Empty clipboard → toast "剪貼簿是空的", no pin
+- [ ] Non-image file path → toast "不是圖片：…", no pin
+- [ ] Pin spawns at cursor position
+- [ ] Pin is always-on-top (verify against fullscreen window)
+- [ ] Drag pin by body (cursor: grab)
+- [ ] Resize pin by OS corner drag
+- [ ] Right-click closes pin
+- [ ] Double-click closes pin
+- [ ] Multiple pins coexist; closing one leaves the others alone
+- [ ] Spawn 5+ pins → all responsive, RAM < 300 MB total
+- [ ] Settings: change paste-pin hotkey to `Ctrl+Alt+V` → new hotkey works, old does not
+- [ ] Restart app → paste-pin hotkey config persists
