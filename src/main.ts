@@ -14,6 +14,9 @@ async function bootstrap() {
     case "editor":
       App = (await import("./windows/editor/App.vue")).default;
       break;
+    case "pin":
+      App = (await import("./windows/pin/App.vue")).default;
+      break;
     default:
       throw new Error(`unknown window entry: ${entry}`);
   }

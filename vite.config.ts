@@ -21,6 +21,7 @@ export default defineConfig({
         overlay: resolve(__dirname, "overlay.html"),
         editor: resolve(__dirname, "editor.html"),
         settings: resolve(__dirname, "settings.html"),
+        pin: resolve(__dirname, "pin.html"),
       },
     },
   },
