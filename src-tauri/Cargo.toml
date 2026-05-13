@@ -31,6 +31,7 @@ image = "0.25"
 dirs = "5"
 chrono = "0.4"
 base64 = "0.22"
+ab_glyph = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 clipboard-win = "5"
