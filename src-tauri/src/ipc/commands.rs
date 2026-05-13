@@ -102,6 +102,7 @@ pub fn selection_cancelled(
     *state.capture.lock().unwrap() = None;
     if let Some(overlay) = app.get_webview_window("overlay") {
         let _ = overlay.emit("capture-clear", ());
+        let _ = overlay.set_always_on_top(false);
         let _ = overlay.set_position(OVERLAY_PARK_POS);
     }
     Ok(())
@@ -182,7 +183,9 @@ fn finalize(
     *state.capture.lock().unwrap() = None;
     if let Some(overlay) = app.get_webview_window("overlay") {
         let _ = overlay.emit("capture-clear", ());
-        let _ = overlay.set_position(OVERLAY_PARK_POS);
+        let _ = overlay.set_always_on_top(false);
+        let r = overlay.set_position(OVERLAY_PARK_POS);
+        tracing::info!("finalize: overlay parked -> {:?}", r);
     }
     let _ = app.emit(
         "action-complete",

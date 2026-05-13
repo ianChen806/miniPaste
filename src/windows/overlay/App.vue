@@ -298,7 +298,7 @@ function onContextMenu(e: MouseEvent) {
 
       <div class="floating-toolbar" :style="toolbarStyle" ref="toolbarRef">
         <Toolbar />
-        <ActionBar />
+        <ActionBar :crop="state.selection" />
       </div>
     </template>
 

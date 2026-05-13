@@ -139,6 +139,8 @@ onMounted(() => {
   });
   uiLayer.add(transformer);
 
+  loadBg();
+
   annLayer.on("click", (e) => {
     if (editorState.tool === "text") return;
     const target = e.target;
@@ -290,33 +292,32 @@ function rerenderAnnotations() {
   annLayer.batchDraw();
 }
 
-watch(
-  () => props.bgUrl,
-  async (url) => {
-    if (!url || !stage || !bgLayer) return;
-    const img = new Image();
-    img.src = url;
-    try {
-      await img.decode();
-    } catch {
-      return;
-    }
-    bgImage = img;
-    const kImg = new Konva.Image({
-      image: img,
-      x: 0,
-      y: 0,
-      width: props.overlaySize.w,
-      height: props.overlaySize.h,
-    });
-    bgLayer.destroyChildren();
-    bgLayer.add(kImg);
-    bgLayer.draw();
-    stage.size({ width: props.overlaySize.w, height: props.overlaySize.h });
-    rerenderAnnotations();
-  },
-  { immediate: true },
-);
+async function loadBg() {
+  const url = props.bgUrl;
+  if (!url || !stage || !bgLayer) return;
+  const img = new Image();
+  img.src = url;
+  try {
+    await img.decode();
+  } catch {
+    return;
+  }
+  bgImage = img;
+  const kImg = new Konva.Image({
+    image: img,
+    x: 0,
+    y: 0,
+    width: props.overlaySize.w,
+    height: props.overlaySize.h,
+  });
+  bgLayer.destroyChildren();
+  bgLayer.add(kImg);
+  bgLayer.draw();
+  stage.size({ width: props.overlaySize.w, height: props.overlaySize.h });
+  rerenderAnnotations();
+}
+
+watch(() => props.bgUrl, loadBg);
 
 watch(() => editorState.shapes.length, rerenderAnnotations);
 

@@ -2,8 +2,12 @@
 import { onMounted, onUnmounted } from "vue";
 import { call } from "../../ipc";
 import { pushToast } from "../../toast";
-import type { FinishAction, FinishOutcome } from "../../types";
+import type { FinishAction, FinishOutcome, Rect } from "../../types";
 import type Konva from "konva";
+
+const props = defineProps<{
+  crop?: Rect;
+}>();
 
 interface EditorStageGlobal {
   __editorStage?: Konva.Stage;
@@ -13,10 +17,33 @@ async function exportPng(): Promise<Uint8Array> {
   const w = window as unknown as EditorStageGlobal;
   const stage = w.__editorStage;
   if (!stage) throw new Error("editor stage not ready");
-  const dataUrl: string = stage.toDataURL({ pixelRatio: 1 });
+  const opts: { pixelRatio: number; x?: number; y?: number; width?: number; height?: number } = {
+    pixelRatio: 1,
+  };
+  if (props.crop) {
+    opts.x = props.crop.x;
+    opts.y = props.crop.y;
+    opts.width = props.crop.w;
+    opts.height = props.crop.h;
+  }
+  const dataUrl: string = stage.toDataURL(opts);
   const res = await fetch(dataUrl);
   const buf = await res.arrayBuffer();
   return new Uint8Array(buf);
+}
+
+function timestamp(): string {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    d.getFullYear().toString() +
+    pad(d.getMonth() + 1) +
+    pad(d.getDate()) +
+    "-" +
+    pad(d.getHours()) +
+    pad(d.getMinutes()) +
+    pad(d.getSeconds())
+  );
 }
 
 async function doAction(action: FinishAction) {
@@ -44,7 +71,7 @@ async function copyImage() {
 async function saveAs() {
   const { save } = await import("@tauri-apps/plugin-dialog");
   const path = await save({
-    defaultPath: "screenshot.png",
+    defaultPath: `screenshot-${timestamp()}.png`,
     filters: [{ name: "Image", extensions: ["png", "jpg"] }],
   });
   if (path) doAction({ kind: "Save", path });
