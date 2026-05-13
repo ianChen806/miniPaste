@@ -88,7 +88,6 @@ For each tool (line, rect, arrow, mosaic, text):
 - [ ] Toolbar falls back to inside when overlay is shorter than expected
 - [ ] Resizing via handle: annotations stay at their pixel positions, clip outside new selection
 - [ ] Magnifier appears during handle drag
-- [ ] Dragging selection body (inside selection): viewport slides over fixed background; annotations reveal/clip as the selection moves
 - [ ] Left-click outside selection → shapes cleared, returns to framing
 - [ ] Double-click inside selection → default action (Copy) + exit
 - [ ] Enter → default action (Copy) + exit

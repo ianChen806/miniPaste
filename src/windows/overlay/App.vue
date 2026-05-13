@@ -172,7 +172,7 @@ function onMouseDown(e: MouseEvent) {
     const hit = hitTestHandle(state.selection, pt);
     if (hit === null) {
       void requestReframe();
-    } else {
+    } else if (hit !== "move") {
       state.activeHandle = hit;
       state.dragLast = pt;
     }
