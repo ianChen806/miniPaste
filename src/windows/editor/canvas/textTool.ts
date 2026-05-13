@@ -65,5 +65,10 @@ export function openTextEditor(opts: TextEditOptions) {
     }
   }
   ta.addEventListener("keydown", onKey);
-  ta.addEventListener("blur", commit);
+  // Defer blur listener so the initial mousedown's focus reshuffle does not
+  // immediately trigger commit (which would remove the textarea before the
+  // user can type anything).
+  setTimeout(() => {
+    if (!done) ta.addEventListener("blur", commit);
+  }, 0);
 }

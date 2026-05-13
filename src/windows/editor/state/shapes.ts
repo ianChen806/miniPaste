@@ -18,11 +18,18 @@ export const editorState = reactive({
   selectedId: null as string | null,
 });
 
-const history = createHistory();
+let history = createHistory();
 history.push([]);
 
 export function commitChange() {
   history.push(editorState.shapes);
+}
+
+export function resetEditor() {
+  editorState.shapes = [];
+  editorState.selectedId = null;
+  history = createHistory();
+  history.push([]);
 }
 
 export function undo() {

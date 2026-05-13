@@ -41,8 +41,12 @@ impl Clipboard for WindowsClipboard {
         retry_3(|| {
             // `set_clipboard` can't be used here: FileList implements `Setter<[T]>`
             // (unsized slice), so we can't pass the data by value. Open the
-            // clipboard manually and call `write_clipboard` with a slice ref.
+            // clipboard manually, empty stale formats (e.g. CF_DIB from a prior
+            // CopyImage call leaves an image format that File Explorer prefers
+            // over CF_HDROP), then write the file list.
             let _clip = clipboard_win::Clipboard::new_attempts(10)
+                .map_err(|e| ClipboardError::Backend(e.to_string()))?;
+            clipboard_win::raw::empty()
                 .map_err(|e| ClipboardError::Backend(e.to_string()))?;
             clipboard_win::formats::FileList
                 .write_clipboard(strings.as_slice())

@@ -64,9 +64,9 @@ pub fn run() {
                 }
             });
 
-            // Intercept editor/overlay/settings window close: hide and reset phase
-            // instead of destroying, so the windows can be reused next time.
-            for label in ["editor", "overlay"] {
+            // Intercept window close: hide and reset phase instead of destroying,
+            // so windows can be reused next time they're shown.
+            for label in ["editor", "overlay", "settings"] {
                 if let Some(win) = app.get_webview_window(label) {
                     let app_handle = app.handle().clone();
                     let label = label.to_string();
@@ -76,12 +76,16 @@ pub fn run() {
                             if let Some(w) = app_handle.get_webview_window(&label) {
                                 let _ = w.hide();
                             }
-                            let state: tauri::State<AppState> = app_handle.state();
-                            let mut phase = state.phase.lock().unwrap();
-                            let _ = phase.transition(crate::state::PhaseEvent::Cancelled);
-                            *state.capture.lock().unwrap() = None;
-                            *state.cropped.lock().unwrap() = None;
-                            tracing::info!("window '{}' close intercepted; phase reset", label);
+                            // Settings is unrelated to the capture phase machine;
+                            // only editor/overlay close should reset capture state.
+                            if label != "settings" {
+                                let state: tauri::State<AppState> = app_handle.state();
+                                let mut phase = state.phase.lock().unwrap();
+                                let _ = phase.transition(crate::state::PhaseEvent::Cancelled);
+                                *state.capture.lock().unwrap() = None;
+                                *state.cropped.lock().unwrap() = None;
+                            }
+                            tracing::info!("window '{}' close intercepted", label);
                         }
                     });
                 }

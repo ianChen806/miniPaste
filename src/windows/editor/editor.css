@@ -9,6 +9,7 @@
 }
 
 .stage-host {
+  position: relative;
   background: #2a2a2a;
   border: 1px solid #3a3a3a;
   overflow: auto;

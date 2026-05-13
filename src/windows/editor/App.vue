@@ -5,7 +5,13 @@ import Stage from "./canvas/Stage.vue";
 import Toolbar from "./ui/Toolbar.vue";
 import ActionBar from "./ui/ActionBar.vue";
 import Toast from "../../shared/Toast.vue";
-import { editorState, undo, redo, commitChange } from "./state/shapes";
+import {
+  editorState,
+  undo,
+  redo,
+  commitChange,
+  resetEditor,
+} from "./state/shapes";
 
 type StageExpose = {
   getStage: () => unknown;
@@ -49,6 +55,7 @@ onMounted(() => {
   on<{ image_b64: string; width: number; height: number }>(
     "editor-ready",
     (p) => {
+      resetEditor();
       state.imgUrl = `data:image/png;base64,${p.image_b64}`;
       state.width = p.width;
       state.height = p.height;

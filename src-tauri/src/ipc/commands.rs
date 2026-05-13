@@ -169,7 +169,17 @@ pub fn finish_action(
                 crate::fs::filename::now_filename(cfg.image_format.extension());
             let path = cfg.default_save_path.join(filename);
             crate::fs::save::write_image_file(&path, &image_bytes)?;
-            clipboard.write_file_paths(&[path.clone()])?;
+            tracing::info!("save_and_copy: wrote file {:?}", path);
+            match clipboard.write_file_paths(&[path.clone()]) {
+                Ok(()) => tracing::info!("save_and_copy: clipboard FileList write OK"),
+                Err(e) => {
+                    tracing::error!(
+                        "save_and_copy: clipboard FileList write FAILED: {}",
+                        e
+                    );
+                    return Err(e.into());
+                }
+            }
             *state.last_save_dir.lock().unwrap() =
                 path.parent().map(|p| p.to_path_buf());
             finalize(
