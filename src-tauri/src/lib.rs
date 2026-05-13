@@ -6,6 +6,7 @@ pub mod fs;
 pub mod hotkey;
 pub mod ipc;
 pub mod logging;
+pub mod pin;
 pub mod state;
 pub mod tray;
 
