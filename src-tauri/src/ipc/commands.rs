@@ -1,8 +1,6 @@
-use crate::capture::{Capture, PlatformCapture, Rect};
 use crate::config::{store, Config};
 use crate::error::AppError;
 use crate::state::{AppState, PhaseEvent};
-use base64::Engine;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
@@ -82,62 +80,12 @@ pub fn update_config(
 }
 
 #[tauri::command]
-pub fn selection_confirmed(
-    rect: Rect,
-    state: State<AppState>,
-    app: AppHandle,
-) -> Result<(), AppError> {
-    {
-        let mut phase = state.phase.lock().unwrap();
-        phase
-            .transition(PhaseEvent::SelectionConfirmed)
-            .map_err(|e| AppError::State(e.to_string()))?;
-    }
-
-    let frame_opt = state.capture.lock().unwrap().clone();
-    let frame =
-        frame_opt.ok_or_else(|| AppError::Capture("no frame in state".into()))?;
-
-    let cap = PlatformCapture::new();
-    let cropped = cap.crop(&frame, rect)?;
-    *state.cropped.lock().unwrap() = Some(cropped.clone());
-
-    tracing::info!(
-        "selection_confirmed: rect={:?}, cropped_bytes={}, windows={:?}",
-        rect,
-        cropped.len(),
-        app.webview_windows().keys().collect::<Vec<_>>()
-    );
-    // Park overlay off-screen (NOT hide — see OVERLAY_PARK_POS comment in lib.rs)
-    // and open editor with cropped image.
-    if let Some(overlay) = app.get_webview_window("overlay") {
-        let _ = overlay.emit("capture-clear", ());
-        let r = overlay.set_position(OVERLAY_PARK_POS);
-        tracing::info!("selection_confirmed: overlay parked -> {:?}", r);
-    } else {
-        tracing::warn!("selection_confirmed: overlay window NOT FOUND");
-    }
-    if let Some(editor) = app.get_webview_window("editor") {
-        let b64 = base64::engine::general_purpose::STANDARD.encode(&cropped);
-        let r1 = editor.show();
-        let r2 = editor.set_focus();
-        let r3 = editor.emit(
-            "editor-ready",
-            serde_json::json!({
-                "image_b64": b64,
-                "width": rect.w,
-                "height": rect.h,
-            }),
-        );
-        tracing::info!(
-            "selection_confirmed: editor show={:?}, focus={:?}, emit={:?}",
-            r1,
-            r2,
-            r3
-        );
-    } else {
-        tracing::warn!("selection_confirmed: editor window NOT FOUND");
-    }
+pub fn selection_confirmed(state: State<AppState>) -> Result<(), AppError> {
+    let mut phase = state.phase.lock().unwrap();
+    phase
+        .transition(PhaseEvent::SelectionConfirmed)
+        .map_err(|e| AppError::State(e.to_string()))?;
+    tracing::info!("selection_confirmed: phase -> Editing");
     Ok(())
 }
 
@@ -232,6 +180,10 @@ fn finalize(
     }
     *state.cropped.lock().unwrap() = None;
     *state.capture.lock().unwrap() = None;
+    if let Some(overlay) = app.get_webview_window("overlay") {
+        let _ = overlay.emit("capture-clear", ());
+        let _ = overlay.set_position(OVERLAY_PARK_POS);
+    }
     let _ = app.emit(
         "action-complete",
         serde_json::json!({ "saved_path": outcome.saved_path }),

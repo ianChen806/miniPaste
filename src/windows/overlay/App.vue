@@ -202,14 +202,7 @@ async function onMouseUp() {
     if (clamped.w < 5 || clamped.h < 5) return;
     state.selection = clamped;
     try {
-      await call("selection_confirmed", {
-        rect: {
-          x: clamped.x + state.origin.x,
-          y: clamped.y + state.origin.y,
-          w: clamped.w,
-          h: clamped.h,
-        },
-      });
+      await call("selection_confirmed");
       state.phase = "editing";
       state.cursor = null;
     } catch (err) {
