@@ -88,17 +88,22 @@ Transitions out of `Editing`:
 
 ### Backend phase machine
 
-Existing `state::Phase` gets a new `Editing` variant and one new event:
+`state::AppPhase` already has the three variants we need (`Idle`, `Capturing`, `Editing`) from the previous editor-window era. Only one **new event** is added:
 
 ```
-Idle → CaptureStarted → SelectionConfirmed → Editing → ActionFinished
-                                              │
-                                              └─ ReframeRequest → CaptureStarted
-                                                 (new event)
-Any → Cancelled → Idle  (existing, unchanged)
+Idle → Capturing → Editing → Idle
+        │ (HotkeyPressed)        ▲
+        │                        │ (ActionFinished)
+        │ (SelectionConfirmed)   │
+        ▼                        │
+        Editing ─────────────────┘
+            │
+            └─ ReframeRequest → Capturing   (NEW event)
+
+Any active phase → Cancelled → Idle  (existing, unchanged)
 ```
 
-`Editing` is the phase where the backend holds `state.cropped` (already there) and awaits a terminal action or reframe. `ReframeRequest` does **not** clear `state.capture` (the background frame is still valid); only the cropped snapshot resets.
+Semantic shift on `Editing`: previously meant "editor window is showing", now means "overlay is in editing mode". Same state, same transitions in/out, just different UI surface. `ReframeRequest` does **not** clear `state.capture` (the background frame is still valid); the overlay frontend clears its own annotation state.
 
 ### Frontend module layout
 
@@ -292,16 +297,21 @@ pub fn reframe_request(state: State<AppState>) -> Result<(), AppError> {
 
 ### Rust: `src-tauri/src/state.rs`
 
-Adds `Phase::Editing` and `PhaseEvent::ReframeRequest`. Transition table updated:
+Adds `PhaseEvent::ReframeRequest` only (no new `AppPhase` variant — `Editing` already exists). Transition table gains one row:
 
 | From | Event | To |
 |---|---|---|
-| `CaptureStarted` | `SelectionConfirmed` | `Editing` |
-| `Editing` | `ReframeRequest` | `CaptureStarted` |
-| `Editing` | `ActionFinished` | `Idle` |
-| `Editing` | `Cancelled` | `Idle` |
+| `Editing` | `ReframeRequest` | `Capturing` |
 
-Other existing transitions stay.
+Existing rows unchanged:
+
+| From | Event | To |
+|---|---|---|
+| `Idle` | `HotkeyPressed` | `Capturing` |
+| `Capturing` | `SelectionConfirmed` | `Editing` |
+| `Editing` | `ActionFinished` | `Idle` |
+| `Capturing` | `Cancelled` | `Idle` |
+| `Editing` | `Cancelled` | `Idle` |
 
 ### Rust: `src-tauri/src/pin/service.rs`
 
@@ -351,7 +361,7 @@ Remove the `editor` rollup input entry.
 [E1] User left-clicks outside selection in editing phase
 [E2] App.vue: hitTestHandle returns null; cursor is outside selection rect
 [E3] call("reframe_request")
-     Backend: phase Editing → CaptureStarted
+     Backend: phase Editing → Capturing
 [E4] App.vue: state.phase = 'framing', selection = null, shapes = []
      Awaits next mousedown
 ```
@@ -380,9 +390,9 @@ Remove the `editor` rollup input entry.
 
 | Command | Payload | Phase transition |
 |---|---|---|
-| `selection_confirmed` | `{ rect: Rect }` | `CaptureStarted → Editing` |
+| `selection_confirmed` | `{ rect: Rect }` | `Capturing → Editing` |
 | `selection_cancelled` | (none) | `* → Idle` |
-| `reframe_request` *(NEW)* | (none) | `Editing → CaptureStarted` |
+| `reframe_request` *(NEW)* | (none) | `Editing → Capturing` |
 | `finish_action` | `{ action: FinishAction, imageBytes: number[] }` | `Editing → Idle` |
 
 ### Events (backend → frontend)
@@ -415,7 +425,7 @@ export interface Rect { x: number; y: number; w: number; h: number }
 |---|---|
 | Selection w or h < 5px | Frontend silently drops on mouseup; stays in framing |
 | Selection past overlay bounds | `clampToBounds` (existing) |
-| `selection_confirmed` arrives while phase is not `CaptureStarted` | `phase.transition` errors → `AppError::State`; frontend toast, reset to idle |
+| `selection_confirmed` arrives while phase is not `Capturing` | `phase.transition` errors → `AppError::State`; frontend toast, reset to idle |
 
 ### Editing phase
 
@@ -448,7 +458,7 @@ export interface Rect { x: number; y: number; w: number; h: number }
 |---|---|
 | Multi-monitor DPI mismatch affecting magnifier coords | Capture pipeline already normalizes via virtual desktop coords; magnifier uses overlay-local coords (DPI-independent) |
 | Konva slowdown on 4K-fullscreen captures | Rare workflow; if it becomes a problem, that is a Konva-level fix, not architectural |
-| Concurrent capture hotkey presses | Phase machine rejects second `CaptureStarted` while not in Idle |
+| Concurrent capture hotkey presses | Phase machine rejects second `Capturing` while not in Idle |
 
 ## Testing
 
@@ -456,10 +466,10 @@ export interface Rect { x: number; y: number; w: number; h: number }
 
 | Module | What we test |
 |---|---|
-| `state::phase` | New `Editing` variant + `ReframeRequest` event: legal transitions (`Editing → CaptureStarted` on Reframe, `Editing → Idle` on ActionFinished/Cancelled) pass; illegal transitions (e.g. `Idle → ReframeRequest`) error |
+| `state::phase` | New `ReframeRequest` event: `Editing → Capturing` passes; `Idle → ReframeRequest` and `Capturing → ReframeRequest` error (existing `Editing → Idle` transitions are already covered) |
 | `pin::service::spawn_from_bytes` | Both `paste_from_clipboard` and `finish_action(PinFromOverlay)` succeed via shared path (mock app handle); registry-at-cap rejects from both entries |
 | `ipc::commands::finish_action` | New `PinFromOverlay` arm: given image_bytes, `state.cropped` cleared, phase `ActionFinished` |
-| `ipc::commands::reframe_request` | In Editing → `CaptureStarted`; in other phases → `AppError::State` |
+| `ipc::commands::reframe_request` | In Editing → `Capturing`; in other phases → `AppError::State` |
 
 ### Frontend unit tests (Vitest, `src/__tests__/`)
 
