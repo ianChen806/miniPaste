@@ -1,5 +1,5 @@
 use super::{Clipboard, ClipboardError};
-use clipboard_win::Setter;
+use clipboard_win::{formats, raw, Getter, Setter};
 use std::path::PathBuf;
 use std::thread::sleep;
 use std::time::Duration;
@@ -55,7 +55,43 @@ impl Clipboard for WindowsClipboard {
     }
 
     fn read_paste_content(&self) -> Result<super::PasteContent, ClipboardError> {
-        Ok(super::PasteContent::Empty) // real impl in T5
+        use super::PasteContent;
+
+        // Open the clipboard for the whole probe sequence; closes on drop.
+        let _clip = clipboard_win::Clipboard::new_attempts(10)
+            .map_err(|e| ClipboardError::Backend(e.to_string()))?;
+
+        // 1. Image — CF_BITMAP (auto-synthesized from CF_DIB by Windows).
+        //    Returns a complete BMP byte stream (with BITMAPFILEHEADER).
+        if raw::is_format_avail(formats::CF_BITMAP)
+            || raw::is_format_avail(formats::CF_DIB)
+            || raw::is_format_avail(formats::CF_DIBV5)
+        {
+            let mut buf: Vec<u8> = Vec::new();
+            if formats::Bitmap.read_clipboard(&mut buf).is_ok() && !buf.is_empty() {
+                return Ok(PasteContent::Image(buf));
+            }
+        }
+
+        // 2. Plain text — CF_UNICODETEXT decoded to UTF-8.
+        if raw::is_format_avail(formats::CF_UNICODETEXT) {
+            let mut text = String::new();
+            if formats::Unicode.read_clipboard(&mut text).is_ok() && !text.trim().is_empty() {
+                return Ok(PasteContent::Text(text));
+            }
+        }
+
+        // 3. File list — CF_HDROP, first entry only.
+        if raw::is_format_avail(formats::CF_HDROP) {
+            let mut paths: Vec<PathBuf> = Vec::new();
+            if formats::FileList.read_clipboard(&mut paths).is_ok() {
+                if let Some(first) = paths.into_iter().next() {
+                    return Ok(PasteContent::FilePath(first));
+                }
+            }
+        }
+
+        Ok(PasteContent::Empty)
     }
 }
 
