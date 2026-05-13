@@ -19,9 +19,13 @@ onMounted(async () => {
   } catch (e: unknown) {
     state.error = errorMessage(e);
   }
-  on<{ attempted: string; reason: string }>("hotkey-conflict", (p) => {
-    state.error = `Hotkey "${p.attempted}" 衝突：${p.reason}`;
-  });
+  on<{ kind?: string; attempted: string; reason: string }>(
+    "hotkey-conflict",
+    (p) => {
+      const which = p.kind === "paste_pin" ? "Paste pin" : "Capture";
+      state.error = `${which} hotkey "${p.attempted}" 衝突：${p.reason}`;
+    },
+  );
 });
 
 async function pickFolder() {
@@ -63,6 +67,11 @@ function errorMessage(e: unknown): string {
     <label>
       Hotkey
       <HotkeyRecorder v-model="state.config.hotkey" />
+    </label>
+
+    <label>
+      Paste pin hotkey
+      <HotkeyRecorder v-model="state.config.paste_pin_hotkey" />
     </label>
 
     <label>
