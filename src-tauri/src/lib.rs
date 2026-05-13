@@ -13,8 +13,8 @@ pub mod tray;
 use crate::config::{defaults, store};
 use crate::hotkey::{HotkeyKind, HotkeyService};
 use crate::ipc::commands::{
-    cancel_edit, finish_action, get_config, pin_close, selection_cancelled, selection_confirmed,
-    update_config,
+    cancel_edit, finish_action, get_config, pin_close, reframe_request, selection_cancelled,
+    selection_confirmed, update_config,
 };
 use crate::state::AppState;
 use tauri::{Emitter, Listener, Manager, PhysicalPosition, WindowEvent};
@@ -131,6 +131,7 @@ pub fn run() {
             update_config,
             selection_confirmed,
             selection_cancelled,
+            reframe_request,
             finish_action,
             cancel_edit,
             pin_close,

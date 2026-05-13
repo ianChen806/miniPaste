@@ -265,3 +265,13 @@ pub fn cancel_edit(
     }
     Ok(())
 }
+
+#[tauri::command]
+pub fn reframe_request(state: State<AppState>) -> Result<(), AppError> {
+    let mut phase = state.phase.lock().unwrap();
+    phase
+        .transition(PhaseEvent::ReframeRequest)
+        .map_err(|e| AppError::State(e.to_string()))?;
+    tracing::info!("reframe_request: phase -> Capturing");
+    Ok(())
+}
