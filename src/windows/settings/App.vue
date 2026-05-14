@@ -5,17 +5,21 @@ import type { Config } from "../../shared/types";
 import HotkeyRecorder from "./HotkeyRecorder.vue";
 import Toast from "../../shared/Toast.vue";
 import { pushToast } from "../../shared/toast";
+import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
 
 const state = reactive({
   loaded: false,
   config: null as Config | null,
   error: "" as string,
+  launchAtStartup: false,
+  autostartBusy: false,
 });
 
 onMounted(async () => {
   try {
     state.config = await call<Config>("get_config");
     state.loaded = true;
+    state.launchAtStartup = await isEnabled();
   } catch (e: unknown) {
     state.error = errorMessage(e);
   }
@@ -52,6 +56,26 @@ async function apply() {
   }
 }
 
+async function toggleAutostart(next: boolean) {
+  if (state.autostartBusy) return;
+  state.autostartBusy = true;
+  const previous = state.launchAtStartup;
+  state.launchAtStartup = next;
+  try {
+    if (next) {
+      await enable();
+    } else {
+      await disable();
+    }
+    pushToast("success", next ? "Auto-start enabled" : "Auto-start disabled");
+  } catch (e: unknown) {
+    state.launchAtStartup = previous;
+    pushToast("error", errorMessage(e));
+  } finally {
+    state.autostartBusy = false;
+  }
+}
+
 function errorMessage(e: unknown): string {
   if (e && typeof e === "object" && "message" in e) {
     return String((e as { message: unknown }).message);
@@ -72,6 +96,19 @@ function errorMessage(e: unknown): string {
     <div class="field">
       <span class="field-label">Paste pin hotkey</span>
       <HotkeyRecorder v-model="state.config.paste_pin_hotkey" />
+    </div>
+
+    <div class="field field-inline">
+      <span class="field-label">Launch at startup</span>
+      <label class="switch">
+        <input
+          type="checkbox"
+          :checked="state.launchAtStartup"
+          :disabled="state.autostartBusy"
+          @change="toggleAutostart(($event.target as HTMLInputElement).checked)"
+        />
+        <span class="switch-slider"></span>
+      </label>
     </div>
 
     <div class="field">
