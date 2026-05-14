@@ -12,35 +12,41 @@ export interface TextEditOptions {
 }
 
 export function openTextEditor(opts: TextEditOptions) {
-  const ta = document.createElement("textarea");
-  ta.className = "konva-text-editor";
-  Object.assign(ta.style, {
+  const ce = document.createElement("div");
+  ce.className = "konva-text-editor";
+  ce.contentEditable = "true";
+  ce.spellcheck = false;
+  Object.assign(ce.style, {
     position: "absolute",
     left: `${opts.stagePoint.x}px`,
     top: `${opts.stagePoint.y}px`,
     color: COLOR_HEX[opts.color],
     fontSize: `${FONT_SIZE[opts.thickness]}px`,
     fontFamily: "system-ui, sans-serif",
-    background: "rgba(255,255,255,0.85)",
-    border: "1px dashed #1f2937",
+    background: "transparent",
+    border: "1px dashed #9ca3af",
     caretColor: COLOR_HEX[opts.color],
-    padding: "2px 4px",
-    minWidth: "60px",
-    minHeight: `${FONT_SIZE[opts.thickness] + 8}px`,
+    padding: "4px 6px",
+    minWidth: "120px",
+    minHeight: `${FONT_SIZE[opts.thickness] + 12}px`,
+    width: "200px",
+    whiteSpace: "pre-wrap",
+    overflow: "auto",
     resize: "both",
+    outline: "none",
     zIndex: "1000",
   });
-  ta.value = opts.initial ?? "";
-  opts.containerEl.appendChild(ta);
-  ta.focus();
+  ce.innerText = opts.initial ?? "";
+  opts.containerEl.appendChild(ce);
+  ce.focus();
 
   let done = false;
   function commit() {
     if (done) return;
     done = true;
-    const text = ta.value;
-    const w = ta.offsetWidth;
-    const h = ta.offsetHeight;
+    const text = ce.innerText;
+    const w = ce.offsetWidth;
+    const h = ce.offsetHeight;
     cleanup();
     if (text.trim()) opts.onCommit(text, { w, h });
     else opts.onCancel();
@@ -52,10 +58,10 @@ export function openTextEditor(opts: TextEditOptions) {
     opts.onCancel();
   }
   function cleanup() {
-    ta.removeEventListener("keydown", onKey);
-    ta.removeEventListener("mousedown", stopProp);
+    ce.removeEventListener("keydown", onKey);
+    ce.removeEventListener("mousedown", stopProp);
     document.removeEventListener("pointerdown", onOutsidePointer, true);
-    ta.remove();
+    ce.remove();
   }
   function onKey(e: KeyboardEvent) {
     if (e.isComposing) return;
@@ -71,13 +77,11 @@ export function openTextEditor(opts: TextEditOptions) {
     e.stopPropagation();
   }
   function onOutsidePointer(e: PointerEvent) {
-    if (e.target instanceof Node && ta.contains(e.target)) return;
+    if (e.target instanceof Node && ce.contains(e.target)) return;
     commit();
   }
-  ta.addEventListener("keydown", onKey);
-  ta.addEventListener("mousedown", stopProp);
-  // Defer outside-pointer listener so the click that just opened the editor
-  // doesn't immediately close it.
+  ce.addEventListener("keydown", onKey);
+  ce.addEventListener("mousedown", stopProp);
   setTimeout(() => {
     if (!done) document.addEventListener("pointerdown", onOutsidePointer, true);
   }, 0);

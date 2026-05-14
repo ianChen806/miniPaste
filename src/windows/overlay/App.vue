@@ -143,6 +143,7 @@ onUnmounted(() => {
 function onKey(e: KeyboardEvent) {
   if (state.phase === "idle") return;
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.target instanceof HTMLElement && e.target.isContentEditable) return;
   const key = e.key.toLowerCase();
   if (e.key === "Escape") {
     e.preventDefault();
