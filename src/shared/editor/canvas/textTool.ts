@@ -53,7 +53,7 @@ export function openTextEditor(opts: TextEditOptions) {
   function cleanup() {
     ta.removeEventListener("keydown", onKey);
     ta.removeEventListener("mousedown", stopProp);
-    ta.removeEventListener("blur", commit);
+    document.removeEventListener("pointerdown", onOutsidePointer, true);
     ta.remove();
   }
   function onKey(e: KeyboardEvent) {
@@ -69,12 +69,15 @@ export function openTextEditor(opts: TextEditOptions) {
   function stopProp(e: Event) {
     e.stopPropagation();
   }
+  function onOutsidePointer(e: PointerEvent) {
+    if (e.target instanceof Node && ta.contains(e.target)) return;
+    commit();
+  }
   ta.addEventListener("keydown", onKey);
   ta.addEventListener("mousedown", stopProp);
-  // Defer blur listener so the initial mousedown's focus reshuffle does not
-  // immediately trigger commit (which would remove the textarea before the
-  // user can type anything).
+  // Defer outside-pointer listener so the click that just opened the editor
+  // doesn't immediately close it.
   setTimeout(() => {
-    if (!done) ta.addEventListener("blur", commit);
+    if (!done) document.addEventListener("pointerdown", onOutsidePointer, true);
   }, 0);
 }
