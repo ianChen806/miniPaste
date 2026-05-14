@@ -84,7 +84,6 @@ pub fn selection_confirmed(state: State<AppState>) -> Result<(), AppError> {
     phase
         .transition(PhaseEvent::SelectionConfirmed)
         .map_err(|e| AppError::State(e.to_string()))?;
-    tracing::info!("selection_confirmed: phase -> Editing");
     Ok(())
 }
 
@@ -93,7 +92,6 @@ pub fn selection_cancelled(
     state: State<AppState>,
     app: AppHandle,
 ) -> Result<(), AppError> {
-    tracing::info!("selection_cancelled invoked");
     {
         let mut phase = state.phase.lock().unwrap();
         let _ = phase.transition(PhaseEvent::Cancelled);
@@ -140,16 +138,9 @@ pub fn finish_action(
                 crate::fs::filename::now_filename(cfg.image_format.extension());
             let path = cfg.default_save_path.join(filename);
             crate::fs::save::write_image_file(&path, &image_bytes)?;
-            tracing::info!("save_and_copy: wrote file {:?}", path);
-            match clipboard.write_file_paths(&[path.clone()]) {
-                Ok(()) => tracing::info!("save_and_copy: clipboard FileList write OK"),
-                Err(e) => {
-                    tracing::error!(
-                        "save_and_copy: clipboard FileList write FAILED: {}",
-                        e
-                    );
-                    return Err(e.into());
-                }
+            if let Err(e) = clipboard.write_file_paths(&[path.clone()]) {
+                tracing::error!("save_and_copy: clipboard write failed: {}", e);
+                return Err(e.into());
             }
             *state.last_save_dir.lock().unwrap() =
                 path.parent().map(|p| p.to_path_buf());
@@ -178,9 +169,7 @@ fn finalize(
     if let Some(overlay) = app.get_webview_window("overlay") {
         let _ = overlay.emit("capture-clear", ());
         let _ = overlay.set_always_on_top(false);
-        let r_hide = overlay.hide();
-        let r_pos = overlay.set_position(OVERLAY_PARK_POS);
-        tracing::info!("finalize: overlay hide={:?} park={:?}", r_hide, r_pos);
+        let _ = overlay.set_position(OVERLAY_PARK_POS);
     }
     let _ = app.emit(
         "action-complete",
@@ -222,6 +211,5 @@ pub fn reframe_request(state: State<AppState>) -> Result<(), AppError> {
     phase
         .transition(PhaseEvent::ReframeRequest)
         .map_err(|e| AppError::State(e.to_string()))?;
-    tracing::info!("reframe_request: phase -> Capturing");
     Ok(())
 }
