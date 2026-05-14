@@ -28,6 +28,15 @@ For each tool (line, rect, arrow, mosaic, text):
 - [ ] Esc cancels
 - [ ] Blur commits
 
+## Auto-start
+- [ ] Settings shows "Launch at startup" row between Paste pin hotkey and Default folder
+- [ ] Initial toggle state matches actual registry state (`HKCU\...\Run\minipaste`)
+- [ ] Toggle ON writes the registry entry and shows success toast
+- [ ] Toggle OFF removes the registry entry and shows success toast
+- [ ] After toggling ON and restarting Windows, the tray icon appears within seconds of login
+- [ ] After toggling OFF and restarting Windows, the app does NOT auto-launch
+- [ ] If `Run\minipaste` is removed externally (regedit) while the app is closed, reopening Settings shows the toggle as OFF
+
 ## Actions
 - [ ] Copy → paste into Paint → image appears
 - [ ] Save → dialog opens → choose path → file appears at path
