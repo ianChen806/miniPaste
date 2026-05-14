@@ -25,6 +25,14 @@ test-results/
 # Claude Code runtime
 .claude/
 
+# Tauri-generated icon variants we don't ship (Windows-only app)
+src-tauri/icons/android/
+src-tauri/icons/ios/
+src-tauri/icons/Square*.png
+src-tauri/icons/StoreLogo.png
+src-tauri/icons/icon.icns
+src-tauri/icons/64x64.png
+
 
 # Playwright
 /test-results/
