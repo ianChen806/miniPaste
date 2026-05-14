@@ -189,7 +189,8 @@ onMounted(() => {
     commitChange();
   });
 
-  stage.on("mousedown", () => {
+  stage.on("mousedown", (e) => {
+    if (e.target !== stage) return;
     const pos = stage!.getPointerPosition();
     if (!pos) return;
     if (editorState.tool === "text") {

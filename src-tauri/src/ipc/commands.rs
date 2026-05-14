@@ -184,8 +184,9 @@ fn finalize(
     if let Some(overlay) = app.get_webview_window("overlay") {
         let _ = overlay.emit("capture-clear", ());
         let _ = overlay.set_always_on_top(false);
-        let r = overlay.set_position(OVERLAY_PARK_POS);
-        tracing::info!("finalize: overlay parked -> {:?}", r);
+        let r_hide = overlay.hide();
+        let r_pos = overlay.set_position(OVERLAY_PARK_POS);
+        tracing::info!("finalize: overlay hide={:?} park={:?}", r_hide, r_pos);
     }
     let _ = app.emit(
         "action-complete",

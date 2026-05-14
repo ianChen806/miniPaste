@@ -52,6 +52,7 @@ pub fn trigger_capture(app: &AppHandle) -> Result<(), String> {
             height: frame.height,
         });
         let _ = win.set_always_on_top(true);
+        let _ = win.show();
         // Emit first so the frontend's reactive update is in-flight, then
         // reposition the (always-visible-but-parked-off-screen) window onto
         // the real virtual-desktop origin. The user sees the CSS dim layer
