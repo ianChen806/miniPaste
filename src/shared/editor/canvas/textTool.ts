@@ -52,10 +52,12 @@ export function openTextEditor(opts: TextEditOptions) {
   }
   function cleanup() {
     ta.removeEventListener("keydown", onKey);
+    ta.removeEventListener("mousedown", stopProp);
     ta.removeEventListener("blur", commit);
     ta.remove();
   }
   function onKey(e: KeyboardEvent) {
+    if (e.isComposing) return;
     if (e.key === "Escape") {
       e.preventDefault();
       cancel();
@@ -64,7 +66,11 @@ export function openTextEditor(opts: TextEditOptions) {
       commit();
     }
   }
+  function stopProp(e: Event) {
+    e.stopPropagation();
+  }
   ta.addEventListener("keydown", onKey);
+  ta.addEventListener("mousedown", stopProp);
   // Defer blur listener so the initial mousedown's focus reshuffle does not
   // immediately trigger commit (which would remove the textarea before the
   // user can type anything).
