@@ -177,13 +177,20 @@ onMounted(() => {
       node.scale({ x: 1, y: 1 });
     } else if (g.kind === "line" || g.kind === "arrow") {
       const pts = (node as Konva.Line).points();
+      const newPts = [
+        pts[0] + node.x(),
+        pts[1] + node.y(),
+        pts[2] + node.x(),
+        pts[3] + node.y(),
+      ];
       shape.geometry = {
         ...g,
-        x1: pts[0] + node.x(),
-        y1: pts[1] + node.y(),
-        x2: pts[2] + node.x(),
-        y2: pts[3] + node.y(),
+        x1: newPts[0],
+        y1: newPts[1],
+        x2: newPts[2],
+        y2: newPts[3],
       };
+      (node as Konva.Line).points(newPts);
       node.position({ x: 0, y: 0 });
     }
     commitChange();

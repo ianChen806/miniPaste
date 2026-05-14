@@ -97,7 +97,6 @@ For each tool (line, rect, arrow, mosaic, text):
 - [ ] Copy → clipboard has image, overlay exits
 - [ ] Save → dialog, path picked, file written, toast
 - [ ] Save+Copy → default path used, clipboard FileList set, toast
-- [ ] Pin → pin window spawned with edited image, overlay exits
 - [ ] Any action failure → toast shown, stays in editing
 
 ### Multi-monitor

@@ -81,10 +81,6 @@ async function saveAndCopy() {
   doAction({ kind: "SaveAndCopyPath" });
 }
 
-async function pinIt() {
-  doAction({ kind: "PinFromOverlay" });
-}
-
 interface OverlayCopyHook {
   __overlayActionBarCopy?: () => void;
 }
@@ -103,7 +99,6 @@ onUnmounted(() => {
     <button @click="copyImage">Copy</button>
     <button @click="saveAs">Save...</button>
     <button @click="saveAndCopy">Save+Copy</button>
-    <button @click="pinIt">Pin</button>
   </div>
 </template>
 

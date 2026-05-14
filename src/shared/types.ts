@@ -47,8 +47,7 @@ export type ShapeGeometry =
 export type FinishAction =
   | { kind: "CopyImage" }
   | { kind: "Save"; path: string }
-  | { kind: "SaveAndCopyPath" }
-  | { kind: "PinFromOverlay" };
+  | { kind: "SaveAndCopyPath" };
 
 export interface FinishOutcome {
   saved_path: string | null;

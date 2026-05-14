@@ -15,7 +15,6 @@ pub enum FinishAction {
     CopyImage,
     Save { path: PathBuf },
     SaveAndCopyPath,
-    PinFromOverlay,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -161,11 +160,6 @@ pub fn finish_action(
                     saved_path: Some(path),
                 },
             )
-        }
-        FinishAction::PinFromOverlay => {
-            crate::pin::service::spawn_from_bytes(&app, image_bytes.clone())
-                .map_err(AppError::State)?;
-            finalize(&app, &state, FinishOutcome { saved_path: None })
         }
     }
 }
