@@ -40,5 +40,5 @@ jobs:
             ## Downloads
             - `minipaste_${{ github.ref_name }}_x64-setup.exe` — NSIS installer (recommended)
             - `minipaste_${{ github.ref_name }}_x64_en-US.msi` — MSI installer
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
