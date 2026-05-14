@@ -142,7 +142,7 @@ onMounted(() => {
   loadBg();
 
   annLayer.on("click", (e) => {
-    if (editorState.tool === "text") return;
+    if (editorState.tool === "text" || editorState.tool === "mosaic") return;
     const target = e.target;
     if (target === stage || !target.id()) {
       transformer!.nodes([]);
