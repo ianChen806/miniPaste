@@ -31,6 +31,7 @@ export function renderMosaic(
     width: w,
     height: h,
     id: shape.id,
+    listening: false,
   });
 }
 
