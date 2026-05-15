@@ -1,7 +1,6 @@
 import type { Rect } from "../../shared/types";
 
 export interface ToolbarSize { w: number; h: number }
-export interface OverlaySize { w: number; h: number }
 
 export interface ToolbarPlacement {
   x: number;
@@ -12,18 +11,20 @@ export interface ToolbarPlacement {
 export function placeToolbar(
   selection: Rect,
   toolbar: ToolbarSize,
-  overlay: OverlaySize,
+  bounds: Rect,
   gap = 8,
 ): ToolbarPlacement {
   const belowY = selection.y + selection.h + gap;
   const aboveY = selection.y - gap - toolbar.h;
+  const boundsBottom = bounds.y + bounds.h;
+  const boundsRight = bounds.x + bounds.w;
 
   let orientation: ToolbarPlacement["orientation"];
   let y: number;
-  if (belowY + toolbar.h <= overlay.h) {
+  if (belowY + toolbar.h <= boundsBottom) {
     orientation = "below";
     y = belowY;
-  } else if (aboveY >= 0) {
+  } else if (aboveY >= bounds.y) {
     orientation = "above";
     y = aboveY;
   } else {
@@ -32,7 +33,8 @@ export function placeToolbar(
   }
 
   const desiredX = selection.x + (selection.w - toolbar.w) / 2;
-  const x = Math.max(0, Math.min(desiredX, overlay.w - toolbar.w));
+  const x = Math.max(bounds.x, Math.min(desiredX, boundsRight - toolbar.w));
+  const clampedY = Math.max(bounds.y, Math.min(y, boundsBottom - toolbar.h));
 
-  return { x, y, orientation };
+  return { x, y: clampedY, orientation };
 }

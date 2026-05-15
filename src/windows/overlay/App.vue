@@ -4,13 +4,14 @@ import { call, on } from "../../shared/ipc";
 import { rectFromDrag, clampToBounds, type Point as SelPoint } from "./selection";
 import { hitTestHandle, resizeRect, type HandleId } from "./handles";
 import { placeToolbar } from "./toolbarPlacement";
+import { findActiveScreen } from "./findActiveScreen";
 import { renderMagnifier, MAGNIFIER_SIZE } from "./magnifier";
 import Stage from "../../shared/editor/canvas/Stage.vue";
 import Toolbar from "../../shared/editor/ui/Toolbar.vue";
 import ActionBar from "../../shared/editor/ui/ActionBar.vue";
 import { editorState, resetEditor, undo, redo, commitChange } from "../../shared/editor/state/shapes";
 import Toast from "../../shared/Toast.vue";
-import type { Rect } from "../../shared/types";
+import type { Rect, ScreenInfo } from "../../shared/types";
 
 type Phase = "idle" | "framing" | "editing";
 
@@ -20,6 +21,7 @@ const state = reactive({
   width: 0,
   height: 0,
   origin: { x: 0, y: 0 },
+  screens: [] as Rect[],
   dragStart: null as SelPoint | null,
   dragEnd: null as SelPoint | null,
   selection: null as Rect | null,
@@ -67,11 +69,9 @@ const toolbarPlacement = computed(() => {
   const tbar = toolbarRef.value
     ? { w: toolbarRef.value.offsetWidth, h: toolbarRef.value.offsetHeight }
     : { w: 320, h: 80 };
-  return placeToolbar(
-    state.selection,
-    tbar,
-    { w: state.width, h: state.height },
-  );
+  const fallback: Rect = { x: 0, y: 0, w: state.width, h: state.height };
+  const bounds = findActiveScreen(state.selection, state.screens, fallback);
+  return placeToolbar(state.selection, tbar, bounds);
 });
 
 const toolbarStyle = computed(() => {
@@ -106,11 +106,18 @@ onMounted(() => {
     height: number;
     origin_x: number;
     origin_y: number;
+    screens: ScreenInfo[];
   }>("capture-ready", async (p) => {
     state.bgUrl = `data:image/png;base64,${p.thumbnail_b64}`;
     state.width = p.width;
     state.height = p.height;
     state.origin = { x: p.origin_x, y: p.origin_y };
+    state.screens = (p.screens ?? []).map((s) => ({
+      x: s.x - p.origin_x,
+      y: s.y - p.origin_y,
+      w: s.w,
+      h: s.h,
+    }));
     const img = new Image();
     img.src = state.bgUrl;
     await img.decode().catch(() => {});
@@ -130,6 +137,7 @@ onMounted(() => {
     state.dragStart = null;
     state.dragEnd = null;
     state.cursor = null;
+    state.screens = [];
     resetEditor();
   });
 
