@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { call, on } from "../../shared/ipc";
 import { rectFromDrag, clampToBounds, type Point as SelPoint } from "./selection";
-import { hitTestHandle, resizeRect, type HandleId } from "./handles";
+import { hitTestHandle, resizeRect, cursorForHandle, type HandleId } from "./handles";
 import { placeToolbar } from "./toolbarPlacement";
 import { findActiveScreen } from "./findActiveScreen";
 import { renderMagnifier, MAGNIFIER_SIZE } from "./magnifier";
@@ -33,6 +33,7 @@ const state = reactive({
 const bgImg = ref<HTMLImageElement | null>(null);
 const magCanvas = ref<HTMLCanvasElement | null>(null);
 const toolbarRef = ref<HTMLDivElement | null>(null);
+const hoverPoint = ref<SelPoint | null>(null);
 
 const framingRectStyle = computed(() => {
   if (!state.dragStart || !state.dragEnd) return { display: "none" };
@@ -78,6 +79,16 @@ const toolbarStyle = computed(() => {
   const p = toolbarPlacement.value;
   if (!p) return { display: "none" };
   return { left: p.x + "px", top: p.y + "px" };
+});
+
+const overlayCursor = computed(() => {
+  if (state.phase !== "editing" || !state.selection || !hoverPoint.value) {
+    return "crosshair";
+  }
+  const hit = hitTestHandle(state.selection, hoverPoint.value);
+  if (hit && hit !== "move") return cursorForHandle(hit);
+  if (hit === "move" && editorState.tool === "move") return "move";
+  return "crosshair";
 });
 
 const magnifierStyle = computed(() => {
@@ -201,7 +212,12 @@ function onMouseDown(e: MouseEvent) {
     const hit = hitTestHandle(state.selection, pt);
     if (hit === null) {
       void requestReframe();
-    } else if (hit !== "move") {
+    } else if (hit === "move") {
+      if (editorState.tool === "move") {
+        state.activeHandle = "move";
+        state.dragLast = pt;
+      }
+    } else {
       state.activeHandle = hit;
       state.dragLast = pt;
     }
@@ -218,8 +234,13 @@ function onMouseMove(e: MouseEvent) {
     state.selection = resizeRect(state.selection, state.activeHandle, delta);
     state.dragLast = pt;
     state.cursor = pt;
+    hoverPoint.value = pt;
+  } else if (state.phase === "editing") {
+    hoverPoint.value = pt;
+    state.cursor = null;
   } else {
     state.cursor = null;
+    hoverPoint.value = null;
   }
 }
 
@@ -272,7 +293,7 @@ function onContextMenu(e: MouseEvent) {
 <template>
   <div
     class="overlay"
-    :style="{ backgroundImage: `url(${state.bgUrl})` }"
+    :style="{ backgroundImage: `url(${state.bgUrl})`, cursor: overlayCursor }"
     @mousedown="onMouseDown"
     @mousemove="onMouseMove"
     @mouseup="onMouseUp"

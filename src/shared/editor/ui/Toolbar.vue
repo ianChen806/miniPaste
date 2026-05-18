@@ -4,6 +4,7 @@ import { COLOR_HEX, COLOR_ORDER } from "../../colors";
 import type { ToolType, Thickness } from "../../types";
 
 const tools: { key: ToolType; label: string }[] = [
+  { key: "move", label: "✥" },
   { key: "line", label: "／" },
   { key: "rect", label: "▭" },
   { key: "arrow", label: "↗" },

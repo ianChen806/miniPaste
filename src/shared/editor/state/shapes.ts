@@ -11,7 +11,7 @@ import { createHistory } from "./history";
 const nid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 10);
 
 export const editorState = reactive({
-  tool: "rect" as ToolType,
+  tool: "move" as ToolType,
   color: "red" as ColorKey,
   thickness: "medium" as Thickness,
   shapes: [] as Shape[],

@@ -197,6 +197,13 @@ onMounted(() => {
   });
 
   stage.on("mousedown", (e) => {
+    if (e.target !== stage && e.target.id()) {
+      // A shape was hit. Stop the DOM event from bubbling up to App.vue,
+      // otherwise App.vue would also start a "move" drag and the shape
+      // and selection would both move.
+      e.evt.stopPropagation();
+      return;
+    }
     if (e.target !== stage) return;
     const pos = stage!.getPointerPosition();
     if (!pos) return;

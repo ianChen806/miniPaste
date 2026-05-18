@@ -24,7 +24,7 @@ export interface ScreenInfo {
   scale: number;
 }
 
-export type ToolType = "line" | "rect" | "arrow" | "mosaic" | "text";
+export type ToolType = "move" | "line" | "rect" | "arrow" | "mosaic" | "text";
 export type ColorKey = "red" | "orange" | "yellow" | "green" | "blue";
 export type Thickness = "thin" | "medium" | "thick";
 
