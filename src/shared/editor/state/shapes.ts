@@ -28,6 +28,7 @@ export function commitChange() {
 export function resetEditor() {
   editorState.shapes = [];
   editorState.selectedId = null;
+  editorState.tool = "move";
   history = createHistory();
   history.push([]);
 }

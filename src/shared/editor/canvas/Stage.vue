@@ -139,6 +139,16 @@ onMounted(() => {
   });
   uiLayer.add(transformer);
 
+  annLayer.listening(editorState.tool === "move");
+  watch(() => editorState.tool, (t) => {
+    if (!annLayer || !transformer) return;
+    annLayer.listening(t === "move");
+    if (t !== "move") {
+      transformer.nodes([]);
+      editorState.selectedId = null;
+    }
+  });
+
   loadBg();
 
   annLayer.on("click", (e) => {
