@@ -161,6 +161,8 @@ onMounted(() => {
       return;
     }
     transformer!.nodes([target as Konva.Shape]);
+    const selected = editorState.shapes.find((s) => s.id === target.id());
+    transformer!.resizeEnabled(selected?.geometry.kind !== "pencil");
     editorState.selectedId = target.id();
   });
 
