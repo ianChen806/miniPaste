@@ -205,6 +205,13 @@ onMounted(() => {
       };
       (node as Konva.Line).points(newPts);
       node.position({ x: 0, y: 0 });
+    } else if (g.kind === "pencil") {
+      const dx = node.x();
+      const dy = node.y();
+      const newPts = g.points.map((v, i) => v + (i % 2 === 0 ? dx : dy));
+      shape.geometry = { kind: "pencil", points: newPts };
+      (node as Konva.Line).points(newPts);
+      node.position({ x: 0, y: 0 });
     }
     commitChange();
   });
