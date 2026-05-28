@@ -4,7 +4,7 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import { editorState, commitChange } from "../state/shapes";
 import { renderShape, renderMosaic } from "./drawTools";
 import { openTextEditor } from "./textTool";
-import { MOSAIC_BLOCK, FONT_SIZE } from "../../colors";
+import { MOSAIC_BLOCK, FONT_SIZE, COLOR_HEX, STROKE_WIDTH } from "../../colors";
 import { nanoid } from "nanoid";
 import type { Shape } from "../../types";
 
@@ -27,6 +27,7 @@ type Drafting = {
   startX: number;
   startY: number;
   node: Konva.Node | null;
+  points?: number[]; // pencil only — flat [x1, y1, x2, y2, ...]
 };
 let drafting: Drafting | null = null;
 
@@ -250,6 +251,25 @@ onMounted(() => {
       return;
     }
     if (!isDrawTool(editorState.tool)) return;
+    if (editorState.tool === "pencil") {
+      const pencilNode = new Konva.Line({
+        points: [pos.x, pos.y],
+        stroke: COLOR_HEX[editorState.color],
+        strokeWidth: STROKE_WIDTH[editorState.thickness],
+        tension: 0.5,
+        lineCap: "round",
+        lineJoin: "round",
+      });
+      previewLayer!.add(pencilNode);
+      previewLayer!.batchDraw();
+      drafting = {
+        startX: pos.x,
+        startY: pos.y,
+        node: pencilNode,
+        points: [pos.x, pos.y],
+      };
+      return;
+    }
     drafting = { startX: pos.x, startY: pos.y, node: null };
   });
 
@@ -257,6 +277,19 @@ onMounted(() => {
     if (!drafting) return;
     const pos = stage!.getPointerPosition();
     if (!pos) return;
+    if (editorState.tool === "pencil" && drafting.points && drafting.node) {
+      const pts = drafting.points;
+      const lastX = pts[pts.length - 2];
+      const lastY = pts[pts.length - 1];
+      const dx = pos.x - lastX;
+      const dy = pos.y - lastY;
+      // Skip points closer than 2px (squared distance, no sqrt).
+      if (dx * dx + dy * dy < 4) return;
+      pts.push(pos.x, pos.y);
+      (drafting.node as Konva.Line).points(pts);
+      previewLayer!.batchDraw();
+      return;
+    }
     const draft = buildDraftShape(
       drafting.startX,
       drafting.startY,
@@ -274,6 +307,26 @@ onMounted(() => {
 
   stage.on("mouseup", () => {
     if (!drafting) return;
+    if (editorState.tool === "pencil" && drafting.points) {
+      const pts = drafting.points;
+      previewLayer!.destroyChildren();
+      previewLayer!.batchDraw();
+      if (pts.length < 4) {
+        drafting = null;
+        return;
+      }
+      const shape: Shape = {
+        id: nanoid(10),
+        tool: "pencil",
+        color: editorState.color,
+        thickness: editorState.thickness,
+        geometry: { kind: "pencil", points: pts.slice() },
+      };
+      editorState.shapes.push(shape);
+      commitChange();
+      drafting = null;
+      return;
+    }
     const pos = stage!.getPointerPosition();
     previewLayer!.destroyChildren();
     previewLayer!.batchDraw();
