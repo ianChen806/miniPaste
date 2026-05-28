@@ -159,9 +159,9 @@ const tools = [
 
 ### Helper updates
 
-- `isDrawTool()` in `src/shared/editor/state/shapes.ts` must include `"pencil"`.
+- `DRAW_TOOLS` array in `src/shared/editor/canvas/Stage.vue:33` must include `"pencil"` so `isDrawTool()` recognizes it.
 - `resetEditor()` already sets `editorState.tool = "move"`, which covers pencil — no change.
-- TypeScript's exhaustive `switch` on `ShapeGeometry` / `ToolType` will surface every other site that needs a `pencil` case at compile time.
+- `renderShape` in `drawTools.ts` has a runtime-throwing `default` case (not a compile-time exhaustive check), so adding pencil to types alone will not fail compilation; the pencil render case must be added in the same task as the type to avoid runtime errors on rerender.
 
 ---
 
@@ -199,9 +199,8 @@ The project has no automated test framework currently. Verification is via compi
 | File | Change |
 |------|--------|
 | `src/shared/types.ts` | Add `"pencil"` to `ToolType`; add `{ kind: "pencil"; points: number[] }` to `ShapeGeometry` |
-| `src/shared/editor/state/shapes.ts` | Add `"pencil"` to `isDrawTool` |
-| `src/shared/editor/canvas/drawTools.ts` | Add `pencil` case in `renderShape` |
-| `src/shared/editor/canvas/Stage.vue` | Pencil branch in `mousedown`/`mousemove`/`mouseup`; transformer resize-disable for pencil; dragend translate-into-points |
+| `src/shared/editor/canvas/drawTools.ts` | Add `pencil` case in `renderShape` (with `hitStrokeWidth`) |
+| `src/shared/editor/canvas/Stage.vue` | Add `"pencil"` to `DRAW_TOOLS`; pencil branch in `mousedown`/`mousemove`/`mouseup`; transformer resize-disable on pencil select; dragend translate-into-points |
 | `src/shared/editor/ui/Toolbar.vue` | Insert pencil button between `move` and `line` |
 
 No new files. No new dependencies.
