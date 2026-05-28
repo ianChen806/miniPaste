@@ -39,6 +39,20 @@ export function renderShape(shape: Shape): Konva.Node {
   const stroke = COLOR_HEX[shape.color];
   const width = STROKE_WIDTH[shape.thickness];
   switch (shape.geometry.kind) {
+    case "pencil": {
+      const g = shape.geometry;
+      return new Konva.Line({
+        points: g.points,
+        stroke,
+        strokeWidth: width,
+        tension: 0.5,
+        lineCap: "round",
+        lineJoin: "round",
+        hitStrokeWidth: Math.max(width, 10),
+        id: shape.id,
+        draggable: true,
+      });
+    }
     case "line": {
       const g = shape.geometry;
       return new Konva.Line({

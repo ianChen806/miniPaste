@@ -24,7 +24,7 @@ export interface ScreenInfo {
   scale: number;
 }
 
-export type ToolType = "move" | "line" | "rect" | "arrow" | "mosaic" | "text";
+export type ToolType = "move" | "pencil" | "line" | "rect" | "arrow" | "mosaic" | "text";
 export type ColorKey = "red" | "orange" | "yellow" | "green" | "blue";
 export type Thickness = "thin" | "medium" | "thick";
 
@@ -38,6 +38,7 @@ export interface Shape {
 }
 
 export type ShapeGeometry =
+  | { kind: "pencil"; points: number[] }
   | { kind: "line"; x1: number; y1: number; x2: number; y2: number }
   | { kind: "rect"; x: number; y: number; w: number; h: number }
   | { kind: "arrow"; x1: number; y1: number; x2: number; y2: number }
