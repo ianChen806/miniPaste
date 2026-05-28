@@ -5,6 +5,7 @@ import type { ToolType, Thickness } from "../../types";
 
 const tools: { key: ToolType; label: string }[] = [
   { key: "move", label: "✥" },
+  { key: "pencil", label: "✎" },
   { key: "line", label: "／" },
   { key: "rect", label: "▭" },
   { key: "arrow", label: "↗" },

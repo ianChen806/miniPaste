@@ -30,7 +30,7 @@ type Drafting = {
 };
 let drafting: Drafting | null = null;
 
-const DRAW_TOOLS = ["line", "rect", "arrow", "mosaic"] as const;
+const DRAW_TOOLS = ["pencil", "line", "rect", "arrow", "mosaic"] as const;
 type DrawTool = (typeof DRAW_TOOLS)[number];
 
 function isDrawTool(t: string): t is DrawTool {
